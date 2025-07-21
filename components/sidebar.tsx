@@ -1,14 +1,13 @@
 "use client"
 
-import { LogOut } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Button } from "@/components/ui/button"
 import { SIDEBAR_NAV_ITEMS } from "@/lib/data"
 import { cn } from "@/lib/utils"
+import { UserProfile } from "@/components/user-profile"
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -75,16 +74,7 @@ export function Sidebar() {
           </nav>
         </div>
         <div className="mt-auto p-4 border-t">
-          <div className="flex items-center gap-3">
-            <Image src="/avatars/john-henchy.jpg" width={40} height={40} alt="John Henchy" className="rounded-full" />
-            <div className="flex-1">
-              <div className="font-semibold">John Henchy</div>
-              <div className="text-xs text-muted-foreground">jlh@johnhenchylaw.com</div>
-            </div>
-            <Button variant="ghost" size="icon">
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+          <UserProfile />
         </div>
       </div>
     </div>

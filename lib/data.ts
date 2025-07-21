@@ -17,6 +17,18 @@ import {
   CheckSquare,
 } from "lucide-react"
 
+export type { FileSystemItem } from "./file-system-data"
+export { fileSystemItems } from "./file-system-data"
+
+export type ActivityEvent = {
+  id: string
+  type: "note" | "call" | "email" | "meeting" | "document" | "task" | "update"
+  description: string
+  details?: string
+  user: string
+  timestamp: string
+}
+
 export type User = {
   name: string
   email: string
