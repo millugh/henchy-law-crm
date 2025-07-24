@@ -20,7 +20,7 @@ function CallIcon({ type }: { type: string }) {
   }
 }
 
-export function PhoneDialerCard({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) {
+export function PhoneDialerCard({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center p-3">

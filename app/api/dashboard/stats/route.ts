@@ -38,8 +38,8 @@ export async function GET() {
       unbilledRevenue,
       newClients: newClients || 0
     })
-  } catch (error) {
-    console.error('Dashboard stats error:', error)
+  } catch (err) {
+    console.error('Dashboard stats error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

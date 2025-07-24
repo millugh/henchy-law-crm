@@ -66,7 +66,7 @@ export default function PracticeAreasPage() {
     <Card>
       <CardHeader>
         <CardTitle>Practice Areas</CardTitle>
-        <CardDescription>Organize and manage the firm's practice areas.</CardDescription>
+        <CardDescription>Organize and manage the firm&apos;s practice areas.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-4">

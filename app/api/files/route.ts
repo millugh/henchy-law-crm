@@ -16,7 +16,8 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ items, breadcrumbs })
-  } catch (error) {
+  } catch (err) {
+    console.error('API Error:', err)
     return NextResponse.json({ error: "Failed to fetch files" }, { status: 500 })
   }
 }

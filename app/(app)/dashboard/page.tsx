@@ -51,7 +51,7 @@ import {
   TIMELINE_ACTIVITIES,
   todaysMeetings,
 } from "@/lib/data"
-import type { Task } from "@/lib/data"
+import type { Task, Client, ActivityEvent, Meeting } from "@/lib/data"
 import { CompactMatterList } from "@/components/compact-matter-list"
 import { PhoneDialerCard } from "@/components/phone-dialer-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -118,11 +118,11 @@ function DashboardClientSearch({
   onSelectClient,
   className,
 }: {
-  clients: any[]
-  selectedClient: any
-  onSelectClient: (client: any) => void
+  clients: Client[]
+  selectedClient: Client | null
+  onSelectClient: (client: Client) => void
   className?: string
-}) {
+}){
   const [open, setOpen] = React.useState(false)
 
   return (
@@ -167,8 +167,8 @@ function DashboardClientSearch({
   )
 }
 
-const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
-  const [selectedClient, setSelectedClient] = React.useState<any>(null)
+const TimeEntryCard = ({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => {
+  const [selectedClient, setSelectedClient] = React.useState<Client | null>(null)
   const [date, setDate] = React.useState<Date | undefined>(new Date())
 
   return (
@@ -195,7 +195,7 @@ const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any
   )
 }
 
-const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
+const CalendarCard = ({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => {
   const [date, setDate] = React.useState<Date | undefined>(new Date())
   return (
     <Card>
@@ -232,43 +232,75 @@ const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any;
   )
 }
 
-const MeetingsCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => (
-  <Card>
-    <CardHeader className="p-3 flex flex-row items-center">
-      {!isOverlay && (
-        <button {...dndListeners} className="cursor-grab p-1 -ml-1 mr-1">
-          <GripVertical className="h-5 w-5 text-muted-foreground/60" />
-        </button>
-      )}
-      <CardTitle className="text-sm font-semibold text-foreground">Today's Meetings</CardTitle>
-    </CardHeader>
-    <CardContent className="p-3 pt-0 grid gap-3">
-      {todaysMeetings.map((meeting, index) => (
-        <div key={index} className="flex items-start gap-3">
-          <Clock className="h-4 w-4 mt-1 text-muted-foreground" />
-          <div className="flex-1">
-            <p className="text-xs font-medium text-foreground">{meeting.title}</p>
-            <p className="text-[10px] text-muted-foreground">{meeting.time}</p>
-          </div>
-          <div className="flex -space-x-2">
-            {meeting.attendees.map((attendee) => (
-              <Avatar key={attendee} className="h-5 w-5 border-2 border-background">
-                <AvatarFallback className="text-[10px]">
-                  {attendee
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-        </div>
-      ))}
-    </CardContent>
-  </Card>
-)
+const MeetingsCard = ({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => {
+  const [meetings, setMeetings] = React.useState<Meeting[]>([])
+  const [loading, setLoading] = React.useState(true)
 
-const AddClientDialog = ({ onAddClient }: { onAddClient: (client: any) => void }) => {
+  React.useEffect(() => {
+    const fetchTodaysMeetings = async () => {
+      try {
+        const response = await fetch('/api/calendar/today')
+        if (response.ok) {
+          const data = await response.json()
+          setMeetings(data.meetings || [])
+        } else {
+          setMeetings(todaysMeetings)
+        }
+      } catch (error) {
+        console.error('Failed to fetch meetings:', error)
+        setMeetings(todaysMeetings)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchTodaysMeetings()
+  }, [])
+
+  return (
+    <Card>
+      <CardHeader className="p-3 flex flex-row items-center">
+        {!isOverlay && (
+          <button {...dndListeners} className="cursor-grab p-1 -ml-1 mr-1">
+            <GripVertical className="h-5 w-5 text-muted-foreground/60" />
+          </button>
+        )}
+        <CardTitle className="text-sm font-semibold text-foreground">Today&apos;s Meetings</CardTitle>
+      </CardHeader>
+      <CardContent className="p-3 pt-0 grid gap-3">
+        {loading ? (
+          <div className="text-xs text-muted-foreground">Loading meetings...</div>
+        ) : meetings.length > 0 ? (
+          meetings.map((meeting, index) => (
+            <div key={meeting.id || index} className="flex items-start gap-3">
+              <Clock className="h-4 w-4 mt-1 text-muted-foreground" />
+              <div className="flex-1">
+                <p className="text-xs font-medium text-foreground">{meeting.title}</p>
+                <p className="text-[10px] text-muted-foreground">{meeting.time}</p>
+              </div>
+              <div className="flex -space-x-2">
+                {meeting.attendees?.map((attendee: string) => (
+                  <Avatar key={attendee} className="h-5 w-5 border-2 border-background">
+                    <AvatarFallback className="text-[10px]">
+                      {attendee
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-xs text-muted-foreground">No meetings scheduled for today</div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+const AddClientDialog = ({ onAddClient }: { onAddClient: (client: Client) => void }) => {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState("")
   const [logoUrl, setLogoUrl] = React.useState("")
@@ -377,12 +409,12 @@ const KeyClientsCard = ({
   dndListeners,
   isOverlay = false,
 }: {
-  clients?: any[]
-  setClients?: (clients: any[]) => void
-  dndListeners?: any
+  clients?: Client[]
+  setClients?: (clients: Client[]) => void
+  dndListeners?: Record<string, unknown>
   isOverlay?: boolean
 }) => {
-  const handleAddClient = (newClient: any) => {
+  const handleAddClient = (newClient: Client) => {
     setClients([...clients, newClient])
   }
 
@@ -414,7 +446,7 @@ const TasksCard = ({
 }: {
   tasks: Task[]
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>
-  dndListeners?: any
+  dndListeners?: Record<string, unknown>
   isOverlay?: boolean
 }) => {
   const handleTaskToggle = (taskId: string) => {
@@ -472,10 +504,10 @@ const NewNoteCard = ({
 }: {
   onSaveNote: (note: { description: string; clientName?: string }) => void
   onConvertToTask: (task: { description: string; clientName: string }) => void
-  dndListeners?: any
+  dndListeners?: Record<string, unknown>
   isOverlay?: boolean
 }) => {
-  const [selectedClient, setSelectedClient] = React.useState<any>(null)
+  const [selectedClient, setSelectedClient] = React.useState<Client | null>(null)
   const [noteText, setNoteText] = React.useState("")
   const { toast } = useToast()
 
@@ -549,8 +581,8 @@ const ActivityFeedCard = ({
   dndListeners,
   isOverlay = false,
 }: {
-  activities: any[]
-  dndListeners?: any
+  activities: ActivityEvent[]
+  dndListeners?: Record<string, unknown>
   isOverlay?: boolean
 }) => (
   <Card>
@@ -609,7 +641,7 @@ const QuickAccessWidget = ({ title, icon: Icon, href }: { title: string; icon: R
   </Link>
 )
 
-const QuickAccessGrid = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => (
+const QuickAccessGrid = ({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => (
   <Card>
     <CardHeader className="p-3 flex flex-row items-center">
       {!isOverlay && (
@@ -681,7 +713,7 @@ type KeyClient = { id: string; name: string; logoUrl?: string; description: stri
 const ContractsInProgressWidget = ({
   dndListeners,
   isOverlay = false,
-}: { dndListeners?: any; isOverlay?: boolean }) => (
+}: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => (
   <CompactMatterList
     title="Contracts In Progress"
     matters={contractsInProgress}
@@ -691,11 +723,11 @@ const ContractsInProgressWidget = ({
   />
 )
 
-const PhoneDialerWidget = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => (
+const PhoneDialerWidget = ({ dndListeners, isOverlay = false }: {  dndListeners?: Record<string, unknown>; isOverlay?: boolean }) => (
   <PhoneDialerCard dndListeners={dndListeners} isOverlay={isOverlay} />
 )
 
-const widgetsMap: Record<string, React.FC<any>> = {
+const widgetsMap: Record<string, React.ComponentType<Record<string, unknown>>> = {
   "time-entry": TimeEntryCard,
   calendar: CalendarCard,
   meetings: MeetingsCard,
@@ -718,7 +750,7 @@ export default function Dashboard() {
   const [layout, setLayout] = React.useState<Layout>(initialLayout)
   const [keyClients, setKeyClients] = React.useState<KeyClient[]>(KEY_CLIENTS_DATA)
   const [tasks, setTasks] = React.useState<Task[]>(initialTasks)
-  const [activities, setActivities] = React.useState<any[]>(
+  const [activities, setActivities] = React.useState<ActivityEvent[]>(
     TIMELINE_ACTIVITIES.map((a) => ({
       ...a,
       user: USERS.find((u) => u.name === a.user) || USERS[0],
@@ -919,7 +951,7 @@ export default function Dashboard() {
     const Widget = widgetsMap[id]
     if (!Widget) return null
 
-    const allProps: { [key: string]: any } = { ...props }
+    const allProps: Record<string, unknown> = { ...props }
     if (id === "clients") {
       allProps.clients = keyClients
       allProps.setClients = setAndPersistKeyClients

@@ -30,7 +30,8 @@ export async function GET() {
     }
 
     return NextResponse.json({ timeEntries })
-  } catch (error) {
+  } catch (err) {
+    console.error('API Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -57,7 +58,8 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({ timeEntry })
-  } catch (error) {
+  } catch (err) {
+    console.error('API Error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

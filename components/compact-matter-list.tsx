@@ -14,7 +14,7 @@ interface CompactMatterListProps {
   title: string
   matters: Matter[]
   viewAllLink: string
-  dndListeners?: any
+  dndListeners?: Record<string, unknown>
   isOverlay?: boolean
 }
 

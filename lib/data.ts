@@ -35,6 +35,19 @@ export type User = {
   avatar: string
 }
 
+export interface Meeting {
+  id: string
+  title: string
+  time: string
+  attendees: string[]
+  client?: string
+}
+
+export interface Breadcrumb {
+  id: string
+  name: string
+}
+
 export type Client = {
   id: string
   name: string
@@ -56,7 +69,7 @@ export type Matter = {
   matterType: string
   status: "Open" | "Closed" | "Pending"
   openDate: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export type TimeEntry = {

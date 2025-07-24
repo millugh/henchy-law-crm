@@ -75,7 +75,7 @@ export default function LetterTemplatesPage() {
             ))}
             {filteredTemplates.length === 0 && (
               <div className="col-span-full text-center text-muted-foreground py-12">
-                <p>No templates found for "{searchTerm}".</p>
+                <p>No templates found for &quot;{searchTerm}&quot;.</p>
                 <Button variant="link" onClick={() => setSearchTerm("")}>
                   Clear search
                 </Button>

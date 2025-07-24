@@ -14,14 +14,14 @@ function saveAs(blob: Blob, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-type Data = Record<string, any>[]
+type Data = Record<string, unknown>[]
 type Headers = string[]
 
 export const exportToPDF = (data: Data, headers: Headers, title: string, filename: string) => {
   const doc = new jsPDF()
   autoTable(doc, {
     head: [headers],
-    body: data.map((row) => headers.map((header) => row[header.toLowerCase().replace(/ /g, "_")])),
+    body: data.map((row) => headers.map((header) => String(row[header.toLowerCase().replace(/ /g, "_")] || ''))),
     didDrawPage: (data) => {
       doc.text(title, data.settings.margin.left, 15)
     },

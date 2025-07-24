@@ -12,12 +12,12 @@ import {
   BreadcrumbList,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import type { FileSystemItem } from "@/lib/data"
+import type { FileSystemItem, Breadcrumb } from "@/lib/data"
 import { FileTableSkeleton } from "@/components/file-table-skeleton"
 
 export default function DocumentsPage() {
   const [items, setItems] = React.useState<FileSystemItem[]>([])
-  const [breadcrumbs, setBreadcrumbs] = React.useState<any[]>([])
+  const [breadcrumbs, setBreadcrumbs] = React.useState<Breadcrumb[]>([])
   const [currentFolderId, setCurrentFolderId] = React.useState("legal")
   const [isLoading, setIsLoading] = React.useState(true)
 

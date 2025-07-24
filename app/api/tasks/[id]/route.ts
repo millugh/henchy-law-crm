@@ -28,7 +28,37 @@ export async function PATCH(
     }
 
     return NextResponse.json({ task })
-  } catch (error) {
+  } catch (err) {
+    console.error('Update task error:', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const supabase = await createServerSupabaseClient()
+    
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', params.id)
+      .eq('user_id', user.id)
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err) {
+    console.error('Delete task error:', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
