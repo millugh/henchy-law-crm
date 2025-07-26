@@ -28,23 +28,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_user_profiles_updated_at ON public.user_profiles;
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_clients_updated_at ON public.clients;
 CREATE TRIGGER update_clients_updated_at BEFORE UPDATE ON public.clients
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_matters_updated_at ON public.matters;
 CREATE TRIGGER update_matters_updated_at BEFORE UPDATE ON public.matters
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_time_entries_updated_at ON public.time_entries;
 CREATE TRIGGER update_time_entries_updated_at BEFORE UPDATE ON public.time_entries
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_tasks_updated_at ON public.tasks;
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON public.tasks
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_documents_updated_at ON public.documents;
 CREATE TRIGGER update_documents_updated_at BEFORE UPDATE ON public.documents
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_calendar_events_updated_at ON public.calendar_events;
 CREATE TRIGGER update_calendar_events_updated_at BEFORE UPDATE ON public.calendar_events
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
