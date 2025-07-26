@@ -207,7 +207,7 @@ const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any;
         )}
         <CardTitle className="text-sm font-semibold text-foreground">Calendar</CardTitle>
       </CardHeader>
-      <CardContent className="p-1">
+      <CardContent className="p-1 overflow-hidden">
         <Calendar
           mode="single"
           selected={date}
@@ -563,7 +563,7 @@ const ActivityFeedCard = ({
       <Activity className="h-4 w-4 mr-2 text-green-500" />
       <CardTitle className="text-sm font-semibold text-foreground">Activity Feed</CardTitle>
     </CardHeader>
-    <CardContent className="p-3 pt-0 grid gap-3 max-h-96 overflow-y-auto">
+    <CardContent className="p-3 pt-0 grid gap-3 max-h-96 overflow-y-auto min-h-0">
       {activities.length > 0 ? (
         activities.map((activity) => (
           <div key={activity.id} className="flex items-start gap-3">
