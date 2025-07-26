@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { PlusCircle, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 
@@ -15,22 +14,38 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { titlePolicyMatters, CLIENTS, type TitlePolicyMatter } from "@/lib/data"
-import { TitlePolicyMatterDialog } from "@/components/title-policy-matter-dialog"
+import { useMatters } from "@/hooks/use-matters"
 
 export default function TitlePolicyMattersPage() {
-  const [matters, setMatters] = useState<TitlePolicyMatter[]>(titlePolicyMatters)
+  const { matters, loading, error, createMatter } = useMatters()
 
-  const handleSaveMatter = (data: Omit<TitlePolicyMatter, "id" | "clientName">) => {
-    const client = CLIENTS.find((c) => c.id === data.clientId)
-    if (!client) return
+  const titlePolicyMatters = matters.filter(matter => 
+    matter.matter_type === 'Title Policy' || 
+    matter.matter_type === 'title-policy' ||
+    matter.title.toLowerCase().includes('title') ||
+    matter.title.toLowerCase().includes('policy')
+  )
 
-    const newMatter: TitlePolicyMatter = {
-      id: `TPM-${Date.now()}`,
-      ...data,
-      clientName: client.name,
-    }
-    setMatters([newMatter, ...matters])
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Title Policy Matters</CardTitle>
+          <CardDescription>Loading title policy matters...</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Title Policy Matters</CardTitle>
+          <CardDescription>Error loading matters: {error}</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   const formatCurrency = (amount: number) => {
@@ -44,20 +59,18 @@ export default function TitlePolicyMattersPage() {
           <CardTitle>Title Policy Matters</CardTitle>
           <CardDescription>Manage all title policy underwriting matters.</CardDescription>
         </div>
-        <TitlePolicyMatterDialog onSave={handleSaveMatter}>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Policy
-          </Button>
-        </TitlePolicyMatterDialog>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Policy
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Policy #</TableHead>
-              <TableHead>Property Address</TableHead>
-              <TableHead>Insured</TableHead>
+              <TableHead>Matter Title</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Coverage</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
@@ -66,18 +79,20 @@ export default function TitlePolicyMattersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {matters.map((matter) => (
+            {titlePolicyMatters.map((matter) => (
               <TableRow key={matter.id}>
                 <TableCell className="font-medium">
                   <Link href={`/matters/title-policy/${matter.id}`} className="hover:underline">
-                    {matter.policyNumber}
+                    {matter.title}
                   </Link>
                 </TableCell>
-                <TableCell>{matter.propertyAddress}</TableCell>
-                <TableCell>{matter.insuredParties}</TableCell>
-                <TableCell>{formatCurrency(matter.coverageAmount)}</TableCell>
+                <TableCell>{matter.clients?.name || "Unknown"}</TableCell>
+                <TableCell>{matter.description || "—"}</TableCell>
+                <TableCell>—</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{matter.status}</Badge>
+                  <Badge variant="outline">
+                    {matter.status.charAt(0).toUpperCase() + matter.status.slice(1)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

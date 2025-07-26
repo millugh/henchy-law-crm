@@ -9,16 +9,16 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range"
-import { TIME_ENTRIES, type TimeEntry } from "@/lib/data"
+import { useTimeEntries } from "@/hooks/use-time-entries"
 import { exportToExcel, exportToPDF } from "@/lib/export"
 
 export default function TimeTrackingPage() {
-  const [entries, setEntries] = React.useState<TimeEntry[]>(TIME_ENTRIES)
+  const { timeEntries, loading, error } = useTimeEntries()
   const [filter, setFilter] = React.useState("")
 
-  const filteredEntries = entries.filter(
+  const filteredEntries = timeEntries.filter(
     (entry) =>
-      entry.clientName.toLowerCase().includes(filter.toLowerCase()) ||
+      (entry.clients?.name && entry.clients.name.toLowerCase().includes(filter.toLowerCase())) ||
       entry.description.toLowerCase().includes(filter.toLowerCase()),
   )
 
@@ -30,7 +30,7 @@ export default function TimeTrackingPage() {
     const headers = ["Date", "Client", "Hours", "Description", "Billed"]
     const data = filteredEntries.map((e) => ({
       date: e.date,
-      client: e.clientName,
+      client: e.clients?.name || "Unknown",
       hours: e.hours.toFixed(2),
       description: e.description,
       billed: e.billed ? "Yes" : "No",
@@ -41,12 +41,38 @@ export default function TimeTrackingPage() {
   const handleExportExcel = () => {
     const data = filteredEntries.map((e) => ({
       Date: e.date,
-      Client: e.clientName,
+      Client: e.clients?.name || "Unknown",
       Hours: e.hours,
       Description: e.description,
       Billed: e.billed ? "Yes" : "No",
     }))
     exportToExcel(data, "time_entries", "Time Entries")
+  }
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Time Tracking</CardTitle>
+            <CardDescription>Loading time entries...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Time Tracking</CardTitle>
+            <CardDescription>Error loading time entries: {error}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -101,7 +127,7 @@ export default function TimeTrackingPage() {
                 {filteredEntries.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="font-medium">{entry.clientName}</TableCell>
+                    <TableCell className="font-medium">{entry.clients?.name || "Unknown"}</TableCell>
                     <TableCell className="text-muted-foreground">{entry.description}</TableCell>
                     <TableCell className="text-right">{entry.hours.toFixed(2)}</TableCell>
                     <TableCell className="text-center">{entry.billed ? "Yes" : "No"}</TableCell>

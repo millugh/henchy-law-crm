@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { PlusCircle, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 
@@ -15,22 +14,37 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { realEstateMatters, CLIENTS, type RealEstateMatter } from "@/lib/data"
-import { RealEstateMatterDialog } from "@/components/real-estate-matter-dialog"
+import { useMatters } from "@/hooks/use-matters"
 
 export default function RealEstateMattersPage() {
-  const [matters, setMatters] = useState<RealEstateMatter[]>(realEstateMatters)
+  const { matters, loading, error, createMatter } = useMatters()
 
-  const handleSaveMatter = (data: Omit<RealEstateMatter, "id" | "clientName">) => {
-    const client = CLIENTS.find((c) => c.id === data.clientId)
-    if (!client) return
+  const realEstateMatters = matters.filter(matter => 
+    matter.matter_type === 'Real Estate' || 
+    matter.matter_type === 'real-estate' ||
+    matter.title.toLowerCase().includes('real estate')
+  )
 
-    const newMatter: RealEstateMatter = {
-      id: `MAT-${Date.now()}`,
-      ...data,
-      clientName: client.name,
-    }
-    setMatters([newMatter, ...matters])
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Real Estate Matters</CardTitle>
+          <CardDescription>Loading real estate matters...</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Real Estate Matters</CardTitle>
+          <CardDescription>Error loading matters: {error}</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   return (
@@ -40,20 +54,18 @@ export default function RealEstateMattersPage() {
           <CardTitle>Real Estate Matters</CardTitle>
           <CardDescription>Manage all real estate transactions.</CardDescription>
         </div>
-        <RealEstateMatterDialog onSave={handleSaveMatter}>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Matter
-          </Button>
-        </RealEstateMatterDialog>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Matter
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Matter Name</TableHead>
+              <TableHead>Matter Title</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Property Address</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -61,17 +73,19 @@ export default function RealEstateMattersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {matters.map((matter) => (
+            {realEstateMatters.map((matter) => (
               <TableRow key={matter.id}>
                 <TableCell className="font-medium">
                   <Link href={`/matters/real-estate/${matter.id}`} className="hover:underline">
-                    {matter.name}
+                    {matter.title}
                   </Link>
                 </TableCell>
-                <TableCell>{matter.clientName}</TableCell>
-                <TableCell>{matter.propertyAddress}</TableCell>
+                <TableCell>{matter.clients?.name || "Unknown"}</TableCell>
+                <TableCell>{matter.description || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{matter.status}</Badge>
+                  <Badge variant="outline">
+                    {matter.status.charAt(0).toUpperCase() + matter.status.slice(1)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

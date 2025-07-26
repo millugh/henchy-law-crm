@@ -13,33 +13,65 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CLIENTS, type Client } from "@/lib/data"
+import { useClients } from "@/hooks/use-clients"
 import { ClientSearch } from "@/components/client-search"
+
+interface Client {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  status: 'active' | 'inactive' | 'archived'
+  created_at: string
+}
 
 function ClientAvatar({ client }: { client: Client }) {
   return (
     <div className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full">
-      {client.logoUrl ? (
-        <Image src={client.logoUrl || "/placeholder.svg"} alt={`${client.name} logo`} fill className="object-cover" />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-          {client.name.charAt(0)}
-        </div>
-      )}
+      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+        {client.name.charAt(0)}
+      </div>
     </div>
   )
 }
 
 export default function ClientsPage({ searchParams }: { searchParams?: { query?: string } }) {
   const query = searchParams?.query || ""
+  const { clients, loading, error } = useClients()
 
-  const filteredClients = CLIENTS.filter((client) => {
+  const filteredClients = clients.filter((client) => {
     const searchTerm = query.toLowerCase()
     return (
       client.name.toLowerCase().includes(searchTerm) ||
-      client.practiceAreas.some((area) => area.toLowerCase().includes(searchTerm))
+      (client.email && client.email.toLowerCase().includes(searchTerm))
     )
   })
+
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Clients</CardTitle>
+            <CardDescription>Loading clients...</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-4 md:p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Clients</CardTitle>
+            <CardDescription>Error loading clients: {error}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 md:p-6">
@@ -62,7 +94,7 @@ export default function ClientsPage({ searchParams }: { searchParams?: { query?:
                   <TableHead className="w-[250px]">Client</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Last Interaction</TableHead>
-                  <TableHead>Practice Areas</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -78,17 +110,13 @@ export default function ClientsPage({ searchParams }: { searchParams?: { query?:
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={client.status === "Active" ? "secondary" : "outline"}>{client.status}</Badge>
+                      <Badge variant={client.status === "active" ? "secondary" : "outline"}>
+                        {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
+                      </Badge>
                     </TableCell>
-                    <TableCell>{new Date(client.lastInteraction).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(client.created_at).toLocaleDateString()}</TableCell>
                     <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {client.practiceAreas.map((area) => (
-                          <Badge key={area} variant="outline" className="font-normal">
-                            {area}
-                          </Badge>
-                        ))}
-                      </div>
+                      {client.email || "—"}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

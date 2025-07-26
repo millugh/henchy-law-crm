@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { PlusCircle, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 
@@ -15,22 +14,38 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { willsSuccessionMatters, CLIENTS, type WillsSuccessionMatter } from "@/lib/data"
-import { WillsSuccessionMatterDialog } from "@/components/wills-succession-matter-dialog"
+import { useMatters } from "@/hooks/use-matters"
 
 export default function WillsSuccessionsMattersPage() {
-  const [matters, setMatters] = useState<WillsSuccessionMatter[]>(willsSuccessionMatters)
+  const { matters, loading, error } = useMatters()
 
-  const handleSaveMatter = (data: Omit<WillsSuccessionMatter, "id" | "clientName">) => {
-    const client = CLIENTS.find((c) => c.id === data.clientId)
-    if (!client) return
+  const willsSuccessionMatters = matters.filter(matter => 
+    matter.matter_type === 'Wills & Successions' || 
+    matter.matter_type === 'wills-successions' ||
+    matter.title.toLowerCase().includes('will') ||
+    matter.title.toLowerCase().includes('succession')
+  )
 
-    const newMatter: WillsSuccessionMatter = {
-      id: `WSM-${Date.now()}`,
-      ...data,
-      clientName: client.name,
-    }
-    setMatters([newMatter, ...matters])
+  if (loading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wills & Successions Matters</CardTitle>
+          <CardDescription>Loading wills & successions matters...</CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Wills & Successions Matters</CardTitle>
+          <CardDescription>Error loading matters: {error}</CardDescription>
+        </CardHeader>
+      </Card>
+    )
   }
 
   return (
@@ -40,12 +55,10 @@ export default function WillsSuccessionsMattersPage() {
           <CardTitle>Wills & Successions Matters</CardTitle>
           <CardDescription>Manage all wills, trusts, and succession matters.</CardDescription>
         </div>
-        <WillsSuccessionMatterDialog onSave={handleSaveMatter}>
-          <Button>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Add Matter
-          </Button>
-        </WillsSuccessionMatterDialog>
+        <Button>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Add Matter
+        </Button>
       </CardHeader>
       <CardContent>
         <Table>
@@ -53,7 +66,7 @@ export default function WillsSuccessionsMattersPage() {
             <TableRow>
               <TableHead>Matter Name</TableHead>
               <TableHead>Client</TableHead>
-              <TableHead>Decedent</TableHead>
+              <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
                 <span className="sr-only">Actions</span>
@@ -61,17 +74,19 @@ export default function WillsSuccessionsMattersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {matters.map((matter) => (
+            {willsSuccessionMatters.map((matter) => (
               <TableRow key={matter.id}>
                 <TableCell className="font-medium">
                   <Link href={`/matters/wills-successions/${matter.id}`} className="hover:underline">
-                    {matter.name}
+                    {matter.title}
                   </Link>
                 </TableCell>
-                <TableCell>{matter.clientName}</TableCell>
-                <TableCell>{matter.decedentName}</TableCell>
+                <TableCell>{matter.clients?.name || "Unknown"}</TableCell>
+                <TableCell>{matter.description || "—"}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{matter.status}</Badge>
+                  <Badge variant="outline">
+                    {matter.status.charAt(0).toUpperCase() + matter.status.slice(1)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
