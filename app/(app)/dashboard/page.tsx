@@ -45,15 +45,16 @@ import { useRouter } from "next/navigation"
 
 import {
   CLIENTS,
-  KEY_CLIENTS_DATA,
   USERS,
   contractsInProgress,
   tasks as initialTasks,
   TIMELINE_ACTIVITIES,
   todaysMeetings,
 } from "@/lib/data"
-import type { Task } from "@/lib/data"
+import type { Task} from "@/lib/data"
 import { CompactMatterList } from "@/components/compact-matter-list"
+import { useDashboardStats } from "@/hooks/use-dashboard-stats"
+import { useClients } from "@/hooks/use-clients"
 import { PhoneDialerCard } from "@/components/phone-dialer-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -383,9 +384,18 @@ const KeyClientsCard = ({
   dndListeners?: any
   isOverlay?: boolean
 }) => {
+  const { clients: apiClients, loading: clientsLoading, error: clientsError } = useClients()
+  
   const handleAddClient = (newClient: any) => {
     setClients([...clients, newClient])
   }
+
+  const displayClients = clients.length > 0 ? clients : apiClients.slice(0, 5).map(client => ({
+    id: client.id,
+    name: client.name,
+    lastContact: new Date(client.lastInteraction).toLocaleDateString(),
+    revenue: 0
+  }))
 
   return (
     <Card>
@@ -399,9 +409,17 @@ const KeyClientsCard = ({
         <AddClientDialog onAddClient={handleAddClient} />
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2">
-        {clients.map((client) => (
-          <ClientCard key={client.id} {...client} />
-        ))}
+        {clientsLoading ? (
+          <div className="text-center py-4 text-sm text-gray-500">Loading clients...</div>
+        ) : clientsError ? (
+          <div className="text-center py-4 text-sm text-red-500">Failed to load clients</div>
+        ) : displayClients.length === 0 ? (
+          <div className="text-center py-4 text-sm text-gray-500">No clients found</div>
+        ) : (
+          displayClients.map((client) => (
+            <ClientCard key={client.id} {...client} />
+          ))
+        )}
       </CardContent>
     </Card>
   )
@@ -588,49 +606,53 @@ const QuickAccessGrid = ({ dndListeners, isOverlay = false }: { dndListeners?: a
   </Card>
 )
 
-const statsCardsData = [
-  {
-    title: "Active Matters",
-    value: "142",
-    change: "+2 from last month",
-    icon: Activity,
-  },
-  {
-    title: "Billable Hours (Month)",
-    value: "231.5",
-    change: "+18.2% from last month",
-    icon: DollarSign,
-  },
-  {
-    title: "Unbilled Revenue",
-    value: "$24,280.00",
-    change: "+12.1% from last month",
-    icon: CreditCard,
-  },
-  {
-    title: "New Clients (YTD)",
-    value: "+12",
-    change: "+5 since last year",
-    icon: Users,
-  },
-]
+const StatsCards = () => {
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
+  
+  const statsCardsData = [
+    {
+      title: "Active Matters",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.activeMatters?.toString() || "0",
+      change: statsError ? "Failed to load" : "Active cases",
+      icon: Activity,
+    },
+    {
+      title: "Billable Hours (Month)",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.totalBillableHours?.toString() || "0",
+      change: statsError ? "Failed to load" : "Total hours",
+      icon: DollarSign,
+    },
+    {
+      title: "Unbilled Revenue",
+      value: statsLoading ? "..." : statsError ? "Error" : `$${stats?.unbilledRevenue?.toLocaleString() || 0}`,
+      change: statsError ? "Failed to load" : "Ready to invoice",
+      icon: CreditCard,
+    },
+    {
+      title: "New Clients (YTD)",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.newClients?.toString() || "0",
+      change: statsError ? "Failed to load" : "This month",
+      icon: Users,
+    },
+  ]
 
-const StatsCards = () => (
-  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-    {statsCardsData.map((stat) => (
-      <Card key={stat.title}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-          <stat.icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stat.value}</div>
-          <p className="text-xs text-muted-foreground">{stat.change}</p>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-)
+  return (
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {statsCardsData.map((stat) => (
+        <Card key={stat.title}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            <stat.icon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground">{stat.change}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
 
 type Layout = {
   [key: string]: string[]
@@ -676,8 +698,10 @@ const initialLayout: Layout = {
 }
 
 export default function Dashboard() {
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
+  const { clients, loading: clientsLoading, error: clientsError } = useClients()
   const [layout, setLayout] = React.useState<Layout>(initialLayout)
-  const [keyClients, setKeyClients] = React.useState<KeyClient[]>(KEY_CLIENTS_DATA)
+  const [keyClients, setKeyClients] = React.useState<KeyClient[]>([])
   const [tasks, setTasks] = React.useState<Task[]>(initialTasks)
   const [activities, setActivities] = React.useState<any[]>(
     TIMELINE_ACTIVITIES.map((a) => ({
@@ -702,7 +726,17 @@ export default function Dashboard() {
       if (storedLayouts) setSavedLayouts(JSON.parse(storedLayouts))
 
       const storedClients = localStorage.getItem("dashboardKeyClients")
-      if (storedClients) setKeyClients(JSON.parse(storedClients))
+      if (storedClients) {
+        setKeyClients(JSON.parse(storedClients))
+      } else if (clients.length > 0) {
+        const topClients = clients.slice(0, 5).map(client => ({
+          id: client.id,
+          name: client.name,
+          lastContact: new Date(client.lastInteraction).toLocaleDateString(),
+          revenue: 0
+        }))
+        setKeyClients(topClients)
+      }
     } catch (error) {
       console.error("Failed to parse from localStorage", error)
       toast({
@@ -711,7 +745,7 @@ export default function Dashboard() {
         variant: "destructive",
       })
     }
-  }, [toast])
+  }, [toast, clients])
 
   const setAndPersistKeyClients = (clients: KeyClient[]) => {
     setKeyClients(clients)

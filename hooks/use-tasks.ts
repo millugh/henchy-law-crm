@@ -1,40 +1,29 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-
-interface Task {
-  id: string
-  title: string
-  description?: string
-  status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  due_date?: string
-  completed_at?: string
-  clients?: { id: string; name: string }
-  matters?: { id: string; title: string }
-}
+import { apiClient, type Task } from '@/lib/api'
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const response = await fetch('/api/tasks')
-        if (!response.ok) {
-          throw new Error('Failed to fetch tasks')
-        }
-        const data = await response.json()
-        setTasks(data.tasks || [])
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
+  const fetchTasks = async () => {
+    setLoading(true)
+    setError(null)
+    
+    const response = await apiClient.fetchTasks()
+    
+    if (response.error) {
+      setError(response.error)
+    } else if (response.data) {
+      setTasks(response.data)
     }
+    
+    setLoading(false)
+  }
 
+  useEffect(() => {
     fetchTasks()
   }, [])
 
@@ -61,5 +50,26 @@ export function useTasks() {
     }
   }
 
-  return { tasks, loading, error, updateTask }
+  const createTask = async (taskData: Omit<Task, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    const response = await apiClient.createTask(taskData)
+    
+    if (response.error) {
+      setError(response.error)
+      return { success: false, error: response.error }
+    } else if (response.data) {
+      await fetchTasks()
+      return { success: true, data: response.data }
+    }
+    
+    return { success: false, error: 'Unknown error occurred' }
+  }
+
+  return { 
+    tasks, 
+    loading, 
+    error, 
+    updateTask,
+    createTask,
+    refetch: fetchTasks
+  }
 }

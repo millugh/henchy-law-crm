@@ -1,40 +1,40 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { apiClient, type Client } from '@/lib/api'
+import { apiClient, type TimeEntry } from '@/lib/api'
 
-export function useClients() {
-  const [clients, setClients] = useState<Client[]>([])
+export function useTimeEntries() {
+  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchClients = async () => {
+  const fetchTimeEntries = async () => {
     setLoading(true)
     setError(null)
     
-    const response = await apiClient.fetchClients()
+    const response = await apiClient.fetchTimeEntries()
     
     if (response.error) {
       setError(response.error)
     } else if (response.data) {
-      setClients(response.data)
+      setTimeEntries(response.data)
     }
     
     setLoading(false)
   }
 
   useEffect(() => {
-    fetchClients()
+    fetchTimeEntries()
   }, [])
 
-  const createClient = async (clientData: Omit<Client, 'id' | 'created_at' | 'updated_at'>) => {
-    const response = await apiClient.createClient(clientData)
+  const createTimeEntry = async (timeEntryData: Omit<TimeEntry, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+    const response = await apiClient.createTimeEntry(timeEntryData)
     
     if (response.error) {
       setError(response.error)
       return { success: false, error: response.error }
     } else if (response.data) {
-      await fetchClients()
+      await fetchTimeEntries()
       return { success: true, data: response.data }
     }
     
@@ -42,10 +42,10 @@ export function useClients() {
   }
 
   return { 
-    clients, 
+    timeEntries, 
     loading, 
     error, 
-    refetch: fetchClients,
-    createClient
+    refetch: fetchTimeEntries,
+    createTimeEntry
   }
 }

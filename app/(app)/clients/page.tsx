@@ -13,8 +13,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CLIENTS, type Client } from "@/lib/data"
+import { type Client } from "@/lib/api"
 import { ClientSearch } from "@/components/client-search"
+import { useClients } from "@/hooks/use-clients"
 
 function ClientAvatar({ client }: { client: Client }) {
   return (
@@ -32,11 +33,13 @@ function ClientAvatar({ client }: { client: Client }) {
 
 export default function ClientsPage({ searchParams }: { searchParams?: { query?: string } }) {
   const query = searchParams?.query || ""
+  const { clients, loading, error } = useClients()
 
-  const filteredClients = CLIENTS.filter((client) => {
+  const filteredClients = clients.filter((client) => {
     const searchTerm = query.toLowerCase()
     return (
       client.name.toLowerCase().includes(searchTerm) ||
+      client.email.toLowerCase().includes(searchTerm) ||
       client.practiceAreas.some((area) => area.toLowerCase().includes(searchTerm))
     )
   })
@@ -56,62 +59,76 @@ export default function ClientsPage({ searchParams }: { searchParams?: { query?:
             </Button>
           </div>
           <div className="border rounded-md">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[250px]">Client</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Interaction</TableHead>
-                  <TableHead>Practice Areas</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Actions</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredClients.map((client) => (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">
-                      <Link href={`/clients/${client.id}`} className="flex items-center gap-3 hover:underline">
-                        <ClientAvatar client={client} />
-                        {client.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={client.status === "Active" ? "secondary" : "outline"}>{client.status}</Badge>
-                    </TableCell>
-                    <TableCell>{new Date(client.lastInteraction).toLocaleDateString()}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {client.practiceAreas.map((area) => (
-                          <Badge key={area} variant="outline" className="font-normal">
-                            {area}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Toggle menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem asChild>
-                            <Link href={`/clients/${client.id}`}>View details</Link>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>Delete</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
+            {loading ? (
+              <div className="p-8 text-center">Loading clients...</div>
+            ) : error ? (
+              <div className="p-8 text-center text-red-500">Error loading clients: {error}</div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[250px]">Client</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Last Interaction</TableHead>
+                    <TableHead>Practice Areas</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredClients.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        {query ? "No clients found matching your search." : "No clients found."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredClients.map((client) => (
+                      <TableRow key={client.id}>
+                        <TableCell className="font-medium">
+                          <Link href={`/clients/${client.id}`} className="flex items-center gap-3 hover:underline">
+                            <ClientAvatar client={client} />
+                            {client.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={client.status === "Active" ? "secondary" : "outline"}>{client.status}</Badge>
+                        </TableCell>
+                        <TableCell>{new Date(client.lastInteraction).toLocaleDateString()}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {client.practiceAreas.map((area) => (
+                              <Badge key={area} variant="outline" className="font-normal">
+                                {area}
+                              </Badge>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button aria-haspopup="true" size="icon" variant="ghost">
+                                <MoreHorizontal className="h-4 w-4" />
+                                <span className="sr-only">Toggle menu</span>
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem asChild>
+                                <Link href={`/clients/${client.id}`}>View details</Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>Edit</DropdownMenuItem>
+                              <DropdownMenuItem>Delete</DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </CardContent>
       </Card>
