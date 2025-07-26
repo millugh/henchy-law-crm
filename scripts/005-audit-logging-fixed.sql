@@ -1,4 +1,3 @@
-
 DROP TABLE IF EXISTS audit_logs CASCADE;
 
 CREATE TABLE IF NOT EXISTS audit_logs (
