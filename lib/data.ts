@@ -641,6 +641,129 @@ export const willsSuccessionMatters: WillsSuccessionMatter[] = [
     decedentName: "Richard P. Johnson",
     dateOfDeath: "2023-11-20",
     keyBeneficiaries: "Multiple heirs (see file)",
-    description: "Awaiting court’s final judgment on heirship.",
+    description: "Awaiting court's final judgment on heirship.",
   },
+]
+
+export type LetterTemplate = {
+  id: string
+  name: string
+  category: string
+  description: string
+  tags: string[]
+  content: string
+  created_at?: string
+  updated_at?: string
+}
+
+export type ContractTemplate = {
+  id: string
+  name: string
+  category: string
+  description: string
+  tags: string[]
+  content: string
+  created_at?: string
+  updated_at?: string
+}
+
+export const letterTemplates: LetterTemplate[] = [
+  {
+    id: "LTPL-001",
+    name: "Standard Engagement Letter",
+    category: "Client Onboarding",
+    description: "Standard engagement letter for new clients outlining terms of representation",
+    tags: ["engagement", "client", "onboarding"],
+    content: `Dear {{client.name}},
+
+Thank you for choosing {{user.name}} to represent you in your legal matter. This letter confirms our engagement and outlines the terms of our representation.
+
+Matter: {{matter.name}}
+Matter ID: {{matter.id}}
+
+We look forward to working with you.
+
+Sincerely,
+{{user.name}}
+{{user.title}}`,
+    created_at: "2024-07-01T00:00:00Z",
+    updated_at: "2024-07-01T00:00:00Z"
+  },
+  {
+    id: "LTPL-002",
+    name: "Demand Letter Template",
+    category: "Litigation",
+    description: "Template for demand letters in collection matters",
+    tags: ["demand", "collection", "litigation"],
+    content: `{{current.date}}
+
+{{client.name}}
+{{client.address}}
+
+RE: Demand for Payment
+
+Dear {{client.primaryContact.name}},
+
+This letter serves as formal demand for payment of outstanding amounts owed.
+
+Please remit payment within 30 days of receipt of this letter.
+
+Sincerely,
+{{user.name}}
+{{user.title}}`,
+    created_at: "2024-07-02T00:00:00Z",
+    updated_at: "2024-07-02T00:00:00Z"
+  }
+]
+
+export const contractTemplates: ContractTemplate[] = [
+  {
+    id: "CTPL-001",
+    name: "Service Agreement Template",
+    category: "Business",
+    description: "Standard service agreement template for business clients",
+    tags: ["service", "agreement", "business"],
+    content: `SERVICE AGREEMENT
+
+This Service Agreement is entered into on {{current.date}} between {{client.name}} and the service provider.
+
+Terms and Conditions:
+1. Scope of Services
+2. Payment Terms
+3. Term and Termination
+
+Client: {{client.name}}
+Address: {{client.address}}
+
+Agreed to by:
+{{user.name}}
+{{user.title}}`,
+    created_at: "2024-07-01T00:00:00Z",
+    updated_at: "2024-07-01T00:00:00Z"
+  },
+  {
+    id: "CTPL-002",
+    name: "Real Estate Purchase Agreement",
+    category: "Real Estate",
+    description: "Template for real estate purchase agreements",
+    tags: ["real estate", "purchase", "property"],
+    content: `REAL ESTATE PURCHASE AGREEMENT
+
+Property Address: {{matter.propertyAddress}}
+Purchase Price: $[AMOUNT]
+
+Buyer: {{client.name}}
+Seller: [SELLER NAME]
+
+Terms:
+1. Purchase Price and Payment
+2. Closing Date
+3. Contingencies
+
+This agreement is subject to the terms and conditions set forth herein.
+
+Date: {{current.date}}`,
+    created_at: "2024-07-03T00:00:00Z",
+    updated_at: "2024-07-03T00:00:00Z"
+  }
 ]

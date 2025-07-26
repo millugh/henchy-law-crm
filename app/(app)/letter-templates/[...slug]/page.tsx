@@ -5,11 +5,13 @@ import { notFound, useParams, useRouter } from "next/navigation"
 import { letterTemplates, type LetterTemplate } from "@/lib/data"
 import { LetterTemplateEditor } from "@/components/letter-template-editor"
 import { useToast } from "@/components/ui/use-toast"
+import { useLetterTemplates } from "@/hooks/use-templates"
 
 export default function LetterTemplateEditPage() {
   const router = useRouter()
   const params = useParams()
   const { toast } = useToast()
+  const { createTemplate, updateTemplate, deleteTemplate } = useLetterTemplates()
   const { slug } = params
 
   const isNew = slug[0] === "new"
@@ -20,41 +22,25 @@ export default function LetterTemplateEditPage() {
     notFound()
   }
 
-  const handleSave = (data: Omit<LetterTemplate, "id">) => {
-    // In a real app, you'd send this to your API
-    if (isNew) {
-      const newTemplate = { id: `LTPL-${Date.now()}`, ...data }
-      letterTemplates.unshift(newTemplate) // Prepend to our mock data
-      toast({
-        title: "Template Created",
-        description: `"${data.name}" has been successfully created.`,
-      })
-      router.push(`/letter-templates/${newTemplate.id}`)
-    } else {
-      const index = letterTemplates.findIndex((t) => t.id === templateId)
-      if (index !== -1) {
-        letterTemplates[index] = { ...letterTemplates[index], ...data }
+  const handleSave = async (data: Omit<LetterTemplate, "id">) => {
+    try {
+      if (isNew) {
+        const newTemplate = await createTemplate(data)
+        router.push(`/letter-templates/${newTemplate.id}`)
+      } else if (templateId) {
+        await updateTemplate(templateId, data)
       }
-      toast({
-        title: "Template Saved",
-        description: `Changes to "${data.name}" have been saved.`,
-      })
-      router.refresh() // Refresh to show updated data if needed
+    } catch (error) {
     }
   }
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (isNew || !templateId) return
-    const index = letterTemplates.findIndex((t) => t.id === templateId)
-    if (index !== -1) {
-      letterTemplates.splice(index, 1)
+    try {
+      await deleteTemplate(templateId)
+      router.push("/letter-templates")
+    } catch (error) {
     }
-    toast({
-      title: "Template Deleted",
-      description: `The template has been permanently deleted.`,
-      variant: "destructive",
-    })
-    router.push("/letter-templates")
   }
 
   return <LetterTemplateEditor template={template || undefined} onSave={handleSave} onDelete={handleDelete} />

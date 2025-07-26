@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { letterTemplates } from "@/lib/data"
+import { useLetterTemplates } from "@/hooks/use-templates"
 
 export default function LetterTemplatesPage() {
+  const { templates, loading } = useLetterTemplates()
   const [searchTerm, setSearchTerm] = React.useState("urgent")
 
-  const filteredTemplates = letterTemplates.filter((template) => {
+  const filteredTemplates = templates.filter((template) => {
     const term = searchTerm.toLowerCase()
     return (
       template.name.toLowerCase().includes(term) ||

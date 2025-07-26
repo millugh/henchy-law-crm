@@ -25,6 +25,7 @@ import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
 import { contractTemplates } from "@/lib/data"
+import { useContractTemplates } from "@/hooks/use-templates"
 
 type Template = (typeof initialTemplates)[0]
 
@@ -97,30 +98,44 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
       })
     }, 100)
 
-    setTimeout(() => {
-      clearInterval(interval)
-      setUploadProgress(100)
-
-      const newTemplate: Template = {
-        id: `TPL-${Date.now()}`,
-        name,
-        category,
-        description,
-      }
-
-      onSave(newTemplate)
-
-      toast({
-        title: "Template Created",
-        description: `The "${name}" template has been successfully added.`,
+    try {
+      const response = await fetch('/api/contract-templates', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          category,
+          description,
+          tags: [],
+          content: `Contract template content for ${name}`,
+        }),
       })
 
-      // Close dialog after a short delay
-      setTimeout(() => {
-        resetForm()
-        setOpen(false)
-      }, 500)
-    }, 2000) // Simulate a 2-second upload
+      if (!response.ok) {
+        throw new Error('Failed to create template')
+      }
+
+      const { data } = await response.json()
+      setUploadProgress(100)
+      setIsUploading(false)
+      onSave(data)
+      setOpen(false)
+      toast({
+        title: "Template Created",
+        description: `"${name}" has been successfully created.`,
+      })
+      resetForm()
+    } catch (error) {
+      setIsUploading(false)
+      setUploadProgress(0)
+      toast({
+        title: "Error",
+        description: "Failed to create template. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -236,11 +251,11 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
 }
 
 export default function ContractTemplatesPage() {
-  const [templates, setTemplates] = React.useState<Template[]>(contractTemplates)
+  const { templates, loading, createTemplate } = useContractTemplates()
   const [searchTerm, setSearchTerm] = React.useState("")
 
-  const handleSaveTemplate = (newTemplate: Template) => {
-    setTemplates((prev) => [newTemplate, ...prev].sort((a, b) => a.name.localeCompare(b.name)))
+  const handleSaveTemplate = async (newTemplate: Template) => {
+    await createTemplate(newTemplate)
   }
 
   const filteredTemplates = React.useMemo(() => {
