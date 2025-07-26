@@ -41,6 +41,7 @@ import {
   Users,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import {
   CLIENTS,
@@ -465,50 +466,16 @@ const TasksCard = ({
 }
 
 const NewNoteCard = ({
-  onSaveNote,
-  onConvertToTask,
   dndListeners,
   isOverlay = false,
 }: {
-  onSaveNote: (note: { description: string; clientName?: string }) => void
-  onConvertToTask: (task: { description: string; clientName: string }) => void
   dndListeners?: any
   isOverlay?: boolean
 }) => {
-  const [selectedClient, setSelectedClient] = React.useState<any>(null)
-  const [noteText, setNoteText] = React.useState("")
-  const { toast } = useToast()
+  const router = useRouter()
 
-  const handleSave = () => {
-    if (!noteText) {
-      toast({ title: "Note is empty", description: "Please write a note before saving.", variant: "destructive" })
-      return
-    }
-    onSaveNote({
-      description: noteText,
-      clientName: selectedClient?.name,
-    })
-    setNoteText("")
-    setSelectedClient(null)
-    toast({ title: "Note Saved", description: "Your note has been added to the activity feed." })
-  }
-
-  const handleConvertToTask = () => {
-    if (!noteText) {
-      toast({
-        title: "Note is empty",
-        description: "Please write a note before converting to a task.",
-        variant: "destructive",
-      })
-      return
-    }
-    onConvertToTask({
-      description: noteText,
-      clientName: selectedClient?.name || "Unassigned",
-    })
-    setNoteText("")
-    setSelectedClient(null)
-    toast({ title: "Task Created", description: "The note has been converted to a task." })
+  const handleNewNote = () => {
+    router.push('/notes')
   }
 
   return (
@@ -520,23 +487,17 @@ const NewNoteCard = ({
           </button>
         )}
         <FilePenLine className="h-4 w-4 mr-2 text-yellow-600" />
-        <CardTitle className="text-sm font-semibold text-foreground flex-1">New Note</CardTitle>
+        <CardTitle className="text-sm font-semibold text-foreground flex-1">Notes</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 pt-0 grid gap-2">
-        <DashboardClientSearch clients={CLIENTS} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
-        <Textarea
-          placeholder="Jot down a quick note..."
-          rows={3}
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          className="bg-background focus:bg-background"
-        />
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={handleSave}>
-            Save
-          </Button>
-          <Button size="sm" className="bg-yellow-600 text-white hover:bg-yellow-600/90" onClick={handleConvertToTask}>
-            Convert to Task
+      <CardContent className="p-3 pt-0">
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground mb-4">Create and manage your notes with rich text formatting</p>
+          <Button 
+            onClick={handleNewNote}
+            className="bg-yellow-600 text-white hover:bg-yellow-600/90"
+          >
+            <FilePenLine className="h-4 w-4 mr-2" />
+            New Note
           </Button>
         </div>
       </CardContent>
@@ -929,8 +890,6 @@ export default function Dashboard() {
       allProps.setTasks = setTasks
     }
     if (id === "new-note") {
-      allProps.onSaveNote = handleAddActivity
-      allProps.onConvertToTask = handleAddTask
     }
     if (id === "activity-feed") {
       allProps.activities = activities

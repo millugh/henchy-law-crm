@@ -15,6 +15,7 @@ import {
   Settings,
   Users,
   CheckSquare,
+  FilePenLine,
 } from "lucide-react"
 
 export type { FileSystemItem } from "./file-system-data"
@@ -516,6 +517,11 @@ export const SIDEBAR_NAV_ITEMS = [
     title: "Tasks",
     href: "/tasks",
     icon: CheckSquare,
+  },
+  {
+    title: "Notes",
+    href: "/notes",
+    icon: FilePenLine,
   },
   {
     title: "Calendar",
