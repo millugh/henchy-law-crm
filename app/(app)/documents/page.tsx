@@ -14,31 +14,76 @@ import {
 } from "@/components/ui/breadcrumb"
 import type { FileSystemItem, Breadcrumb } from "@/lib/data"
 import { FileTableSkeleton } from "@/components/file-table-skeleton"
+import { DocumentUploadDialog } from "@/components/document-upload-dialog"
+import { useToast } from "@/components/ui/use-toast"
+
+interface DocumentRecord {
+  id: string
+  name: string
+  file_type: string
+  file_size: number
+  file_url: string
+  created_at: string
+}
 
 export default function DocumentsPage() {
   const [items, setItems] = React.useState<FileSystemItem[]>([])
   const [breadcrumbs, setBreadcrumbs] = React.useState<Breadcrumb[]>([])
-  const [currentFolderId, setCurrentFolderId] = React.useState("legal")
+  const [currentFolderId, setCurrentFolderId] = React.useState("documents")
   const [isLoading, setIsLoading] = React.useState(true)
+  const { toast } = useToast()
 
   React.useEffect(() => {
     const fetchFiles = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`/api/files?parentId=${currentFolderId}`)
+        const response = await fetch('/api/documents')
+        if (!response.ok) {
+          throw new Error('Failed to fetch documents')
+        }
         const data = await response.json()
-        setItems(data.items)
-        setBreadcrumbs(data.breadcrumbs)
+        
+        const documentItems: FileSystemItem[] = data.documents.map((doc: DocumentRecord) => ({
+          id: doc.id,
+          name: doc.name,
+          type: "file" as const,
+          size: doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : undefined,
+          lastModified: doc.created_at ? new Date(doc.created_at).toLocaleDateString() : undefined,
+          fileType: doc.file_type,
+          url: doc.file_url,
+          parentId: currentFolderId
+        }))
+
+        setItems(documentItems)
+        setBreadcrumbs([{ id: "documents", name: "Documents" }])
       } catch (error) {
         console.error("Failed to fetch files:", error)
-        // Handle error state in UI
+        toast({
+          title: "Error",
+          description: "Failed to load documents",
+          variant: "destructive",
+        })
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchFiles()
-  }, [currentFolderId])
+  }, [currentFolderId, toast])
+
+  const handleDocumentUpload = (documents: DocumentRecord[]) => {
+    const newItems: FileSystemItem[] = documents.map(doc => ({
+      id: doc.id,
+      name: doc.name,
+      type: "file" as const,
+      size: doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : undefined,
+      lastModified: new Date(doc.created_at).toLocaleDateString(),
+      fileType: doc.file_type,
+      url: doc.file_url,
+      parentId: currentFolderId
+    }))
+    setItems([...newItems, ...items])
+  }
 
   const handleItemClick = (item: FileSystemItem) => {
     if (item.type === "folder") {
@@ -96,10 +141,12 @@ export default function DocumentsPage() {
             <FolderPlus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Files
-          </Button>
+          <DocumentUploadDialog onUpload={handleDocumentUpload}>
+            <Button>
+              <Upload className="mr-2 h-4 w-4" />
+              Upload Files
+            </Button>
+          </DocumentUploadDialog>
         </div>
       </div>
 
