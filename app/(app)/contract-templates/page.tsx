@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 import { contractTemplates } from "@/lib/data"
 
 type Template = (typeof initialTemplates)[0]
@@ -75,7 +75,7 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
     setUploadProgress(0)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name || !category || !description || !file) {
       toast({
         title: "Missing Information",
@@ -87,18 +87,22 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
 
     setIsUploading(true)
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev >= 95) {
-          return prev
-        }
-        return prev + 5
-      })
-    }, 100)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folderPath', 'contract-templates')
 
-    setTimeout(() => {
-      clearInterval(interval)
+      const response = await fetch('/api/files', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Upload failed')
+      }
+
+      const result = await response.json()
       setUploadProgress(100)
 
       const newTemplate: Template = {
@@ -115,12 +119,20 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
         description: `The "${name}" template has been successfully added.`,
       })
 
-      // Close dialog after a short delay
       setTimeout(() => {
         resetForm()
         setOpen(false)
       }, 500)
-    }, 2000) // Simulate a 2-second upload
+    } catch (error) {
+      console.error('Upload error:', error)
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Failed to upload file",
+        variant: "destructive",
+      })
+      setIsUploading(false)
+      setUploadProgress(0)
+    }
   }
 
   return (

@@ -25,13 +25,16 @@ export default function DocumentsPage() {
     const fetchFiles = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`/api/files?parentId=${currentFolderId}`)
-        const data = await response.json()
-        setItems(data.items)
-        setBreadcrumbs(data.breadcrumbs)
+        const response = await fetch('/api/files')
+        if (response.ok) {
+          const data = await response.json()
+          setItems(data.files || [])
+          setBreadcrumbs([{ id: 'root', name: 'Documents' }])
+        } else {
+          console.error('Failed to fetch files:', response.statusText)
+        }
       } catch (error) {
         console.error("Failed to fetch files:", error)
-        // Handle error state in UI
       } finally {
         setIsLoading(false)
       }
@@ -96,7 +99,41 @@ export default function DocumentsPage() {
             <FolderPlus className="mr-2 h-4 w-4" />
             New Folder
           </Button>
-          <Button>
+          <Button onClick={() => {
+            const input = document.createElement('input')
+            input.type = 'file'
+            input.multiple = true
+            input.onchange = async (e) => {
+              const files = Array.from((e.target as HTMLInputElement).files || [])
+              if (files.length > 0) {
+                try {
+                  const uploadPromises = files.map(async (file) => {
+                    const formData = new FormData()
+                    formData.append('file', file)
+                    formData.append('folderPath', '')
+                    
+                    const response = await fetch('/api/files', {
+                      method: 'POST',
+                      body: formData
+                    })
+                    
+                    if (!response.ok) {
+                      const error = await response.json()
+                      throw new Error(error.error || 'Upload failed')
+                    }
+                    
+                    return response.json()
+                  })
+                  
+                  const uploadedFiles = await Promise.all(uploadPromises)
+                  setItems(prev => [...uploadedFiles.map(result => result.file), ...prev])
+                } catch (error) {
+                  console.error('Upload error:', error)
+                }
+              }
+            }
+            input.click()
+          }}>
             <Upload className="mr-2 h-4 w-4" />
             Upload Files
           </Button>

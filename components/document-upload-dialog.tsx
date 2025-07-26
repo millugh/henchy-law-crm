@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { UploadCloud } from "lucide-react"
 import { useState, useRef } from "react"
+import { useErrorHandler } from "@/hooks/use-error-handler"
+import { ErrorToast } from "./error-toast"
 
 interface DocumentUploadDialogProps {
   onUpload: (files: File[]) => void
@@ -26,6 +28,7 @@ export function DocumentUploadDialog({ onUpload, children }: DocumentUploadDialo
   const [isOpen, setIsOpen] = useState(false)
   const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { error, handleError, clearError, isLoading, withErrorHandling } = useErrorHandler()
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -33,12 +36,33 @@ export function DocumentUploadDialog({ onUpload, children }: DocumentUploadDialo
     }
   }
 
-  const handleUpload = () => {
-    if (files.length > 0) {
+  const handleUpload = async () => {
+    if (files.length === 0) return
+    
+    const result = await withErrorHandling(async () => {
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('folderPath', 'documents')
+        
+        const response = await fetch('/api/files', {
+          method: 'POST',
+          body: formData
+        })
+        
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || 'Upload failed')
+        }
+        
+        return response.json()
+      })
+      
+      await Promise.all(uploadPromises)
       onUpload(files)
       setFiles([])
       setIsOpen(false)
-    }
+    })
   }
 
   return (
@@ -73,11 +97,12 @@ export function DocumentUploadDialog({ onUpload, children }: DocumentUploadDialo
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancel
           </Button>
-          <Button onClick={handleUpload} disabled={files.length === 0}>
-            Upload
+          <Button onClick={handleUpload} disabled={files.length === 0 || isLoading}>
+            {isLoading ? 'Uploading...' : 'Upload'}
           </Button>
         </DialogFooter>
       </DialogContent>
+      <ErrorToast error={error ? new Error(error.message) : null} onClear={clearError} />
     </Dialog>
   )
 }
