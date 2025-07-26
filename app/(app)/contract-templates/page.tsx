@@ -97,30 +97,56 @@ function NewTemplateDialog({ onSave }: { onSave: (newTemplate: Template) => void
       })
     }, 100)
 
-    setTimeout(() => {
-      clearInterval(interval)
-      setUploadProgress(100)
+    const uploadFile = async () => {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folderPath', '/templates')
 
-      const newTemplate: Template = {
-        id: `TPL-${Date.now()}`,
-        name,
-        category,
-        description,
+      try {
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        })
+
+        if (!response.ok) {
+          throw new Error('Upload failed')
+        }
+
+        const result = await response.json()
+        clearInterval(interval)
+        setUploadProgress(100)
+
+        const newTemplate: Template = {
+          id: `TPL-${Date.now()}`,
+          name,
+          category,
+          description,
+        }
+
+        onSave(newTemplate)
+
+        toast({
+          title: "Template Created",
+          description: `The "${name}" template has been successfully uploaded.`,
+        })
+
+        setTimeout(() => {
+          resetForm()
+          setOpen(false)
+        }, 500)
+      } catch (error) {
+        clearInterval(interval)
+        toast({
+          title: "Upload Failed",
+          description: "There was an error uploading the template. Please try again.",
+          variant: "destructive",
+        })
+        setIsUploading(false)
+        setUploadProgress(0)
       }
+    }
 
-      onSave(newTemplate)
-
-      toast({
-        title: "Template Created",
-        description: `The "${name}" template has been successfully added.`,
-      })
-
-      // Close dialog after a short delay
-      setTimeout(() => {
-        resetForm()
-        setOpen(false)
-      }, 500)
-    }, 2000) // Simulate a 2-second upload
+    uploadFile()
   }
 
   return (
