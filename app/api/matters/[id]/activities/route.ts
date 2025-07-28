@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET() {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const supabase = await createServerSupabaseClient()
     
@@ -10,30 +13,27 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: matters, error } = await supabase
-      .from('matters')
-      .select(`
-        *,
-        clients (
-          id,
-          name,
-          email
-        )
-      `)
+    const { data: activities, error } = await supabase
+      .from('matter_activities')
+      .select('*')
+      .eq('matter_id', params.id)
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('timestamp', { ascending: false })
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ matters })
+    return NextResponse.json({ activities })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const supabase = await createServerSupabaseClient()
     
@@ -44,9 +44,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     
-    const { data: matter, error } = await supabase
-      .from('matters')
-      .insert([{ ...body, user_id: user.id }])
+    const { data: activity, error } = await supabase
+      .from('matter_activities')
+      .insert({
+        ...body,
+        matter_id: params.id,
+        user_id: user.id,
+        timestamp: new Date().toISOString()
+      })
       .select()
       .single()
 
@@ -54,7 +59,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ matter })
+    return NextResponse.json({ activity })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

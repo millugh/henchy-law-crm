@@ -89,6 +89,45 @@ export interface CalendarEvent {
   }
 }
 
+export interface Matter {
+  id: string
+  title: string
+  description: string | null
+  status: string
+  matter_type: string
+  open_date: string
+  close_date: string | null
+  client_id: string
+  practice_area_id: string | null
+  user_id: string
+  created_at: string
+  updated_at: string
+  clients?: {
+    id: string
+    name: string
+  }
+  property_address?: string
+  policy_number?: string
+  coverage_amount?: number
+  insured_parties?: string
+  decedent_name?: string
+  date_of_death?: string
+  key_beneficiaries?: string
+}
+
+export interface ActivityEvent {
+  id: string
+  matter_id: string
+  client_id: string
+  type: 'note' | 'call' | 'email' | 'meeting' | 'document' | 'task' | 'update'
+  description: string
+  details?: string
+  user: string
+  timestamp: string
+  created_at: string
+  updated_at: string
+}
+
 class ApiClient {
   private supabase = createClientComponentClient()
 
@@ -263,6 +302,103 @@ class ApiClient {
       return { data: undefined }
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Failed to delete calendar event' }
+    }
+  }
+
+  async fetchMatters(): Promise<ApiResponse<Matter[]>> {
+    try {
+      const response = await fetch('/api/matters')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.matters || [] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch matters' }
+    }
+  }
+
+  async createMatter(matterData: Omit<Matter, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<ApiResponse<Matter>> {
+    try {
+      const response = await fetch('/api/matters', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(matterData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.matter }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create matter' }
+    }
+  }
+
+  async updateMatter(id: string, matterData: Partial<Matter>): Promise<ApiResponse<Matter>> {
+    try {
+      const response = await fetch(`/api/matters/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(matterData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.matter }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update matter' }
+    }
+  }
+
+  async deleteMatter(id: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetch(`/api/matters/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return { data: undefined }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to delete matter' }
+    }
+  }
+
+  async fetchMatterActivities(matterId: string): Promise<ApiResponse<ActivityEvent[]>> {
+    try {
+      const response = await fetch(`/api/matters/${matterId}/activities`)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.activities || [] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch matter activities' }
+    }
+  }
+
+  async createMatterActivity(matterId: string, activityData: Omit<ActivityEvent, 'id' | 'created_at' | 'updated_at' | 'matter_id'>): Promise<ApiResponse<ActivityEvent>> {
+    try {
+      const response = await fetch(`/api/matters/${matterId}/activities`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.activity }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create matter activity' }
     }
   }
 }

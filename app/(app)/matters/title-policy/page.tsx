@@ -15,22 +15,41 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { titlePolicyMatters, CLIENTS, type TitlePolicyMatter } from "@/lib/data"
+import { useMatters } from "@/hooks/use-matters"
+import { useClients } from "@/hooks/use-clients"
+import { type Matter } from "@/lib/api"
 import { TitlePolicyMatterDialog } from "@/components/title-policy-matter-dialog"
 
 export default function TitlePolicyMattersPage() {
-  const [matters, setMatters] = useState<TitlePolicyMatter[]>(titlePolicyMatters)
+  const { matters, loading, error, createMatter } = useMatters('title_policy')
+  const { clients } = useClients()
 
-  const handleSaveMatter = (data: Omit<TitlePolicyMatter, "id" | "clientName">) => {
-    const client = CLIENTS.find((c) => c.id === data.clientId)
-    if (!client) return
-
-    const newMatter: TitlePolicyMatter = {
-      id: `TPM-${Date.now()}`,
-      ...data,
-      clientName: client.name,
+  const handleSaveMatter = async (data: {
+    policyNumber: string
+    propertyAddress: string
+    insuredParties: string
+    coverageAmount: number
+    status: string
+    clientId: string
+  }) => {
+    const result = await createMatter({
+      title: `Policy ${data.policyNumber}`,
+      description: `Title policy for ${data.propertyAddress}`,
+      status: data.status,
+      matter_type: 'title_policy',
+      open_date: new Date().toISOString().split('T')[0],
+      close_date: null,
+      client_id: data.clientId,
+      practice_area_id: null,
+      policy_number: data.policyNumber,
+      property_address: data.propertyAddress,
+      insured_parties: data.insuredParties,
+      coverage_amount: data.coverageAmount,
+    })
+    
+    if (!result.success) {
+      console.error('Failed to create matter:', result.error)
     }
-    setMatters([newMatter, ...matters])
   }
 
   const formatCurrency = (amount: number) => {
@@ -52,55 +71,65 @@ export default function TitlePolicyMattersPage() {
         </TitlePolicyMatterDialog>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Policy #</TableHead>
-              <TableHead>Property Address</TableHead>
-              <TableHead>Insured</TableHead>
-              <TableHead>Coverage</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {matters.map((matter) => (
-              <TableRow key={matter.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/matters/title-policy/${matter.id}`} className="hover:underline">
-                    {matter.policyNumber}
-                  </Link>
-                </TableCell>
-                <TableCell>{matter.propertyAddress}</TableCell>
-                <TableCell>{matter.insuredParties}</TableCell>
-                <TableCell>{formatCurrency(matter.coverageAmount)}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{matter.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/matters/title-policy/${matter.id}`}>View Details</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Loading matters...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-destructive">Error loading matters: {error}</div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Policy #</TableHead>
+                <TableHead>Property Address</TableHead>
+                <TableHead>Insured</TableHead>
+                <TableHead>Coverage</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {matters.map((matter) => (
+                <TableRow key={matter.id}>
+                  <TableCell className="font-medium">
+                    <Link href={`/matters/title-policy/${matter.id}`} className="hover:underline">
+                      {matter.policy_number}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{matter.property_address}</TableCell>
+                  <TableCell>{matter.insured_parties}</TableCell>
+                  <TableCell>{formatCurrency(matter.coverage_amount || 0)}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{matter.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/matters/title-policy/${matter.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

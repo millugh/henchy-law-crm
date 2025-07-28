@@ -16,21 +16,29 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CLIENTS, type RealEstateMatter } from "@/lib/data"
+import { useClients } from "@/hooks/use-clients"
+import { type Matter } from "@/lib/api"
 import { useState } from "react"
 
 interface RealEstateMatterDialogProps {
-  matter?: RealEstateMatter
-  onSave: (matter: Omit<RealEstateMatter, "id" | "clientName">) => void
+  matter?: Matter
+  onSave: (matter: {
+    name: string
+    description: string
+    status: string
+    clientId: string
+    propertyAddress: string
+  }) => void
   children: React.ReactNode
 }
 
 export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateMatterDialogProps) {
+  const { clients } = useClients()
   const [isOpen, setIsOpen] = useState(false)
-  const [name, setName] = useState(matter?.name || "")
-  const [propertyAddress, setPropertyAddress] = useState(matter?.propertyAddress || "")
+  const [name, setName] = useState(matter?.title || "")
+  const [propertyAddress, setPropertyAddress] = useState(matter?.property_address || "")
   const [status, setStatus] = useState(matter?.status || "Under Contract")
-  const [clientId, setClientId] = useState(matter?.clientId || "")
+  const [clientId, setClientId] = useState(matter?.client_id || "")
   const [description, setDescription] = useState(matter?.description || "")
 
   const handleSave = () => {
@@ -92,7 +100,7 @@ export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateM
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
               <SelectContent>
-                {CLIENTS.map((client) => (
+                {clients.filter(c => c.practiceAreas?.includes('Real Estate')).map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
                   </SelectItem>

@@ -1,7 +1,9 @@
 "use client"
 
 import { notFound, useParams } from "next/navigation"
-import { willsSuccessionMatters, ACTIVITY_TIMELINE, type ActivityEvent } from "@/lib/data"
+import { useMatters } from "@/hooks/use-matters"
+import { useMatterActivities } from "@/hooks/use-matter-activities"
+import { type ActivityEvent } from "@/lib/api"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ActivityTimeline } from "@/components/activity-timeline"
@@ -12,30 +14,30 @@ import { FileSignature, User, Users2, Calendar } from "lucide-react"
 export default function WillsSuccessionMatterDetailPage() {
   const params = useParams()
   const matterId = params.matterId as string
-  const matter = willsSuccessionMatters.find((m) => m.id === matterId)
-
-  const [activity, setActivity] = useState<ActivityEvent[]>(
-    ACTIVITY_TIMELINE.filter((a) => a.matterId === matterId).sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    ),
-  )
+  const { matters } = useMatters('wills_successions')
+  const { activities, createActivity } = useMatterActivities(matterId)
+  
+  const matter = matters.find((m) => m.id === matterId)
 
   if (!matter) {
     notFound()
   }
 
-  const handleAddActivity = (newActivity: { type: string; description: string; user: string }) => {
-    const event: ActivityEvent = {
-      id: `act-${Date.now()}`,
-      clientId: matter.clientId,
-      matterId: matter.id,
+  const handleAddActivity = async (newActivity: { type: string; description: string; user: string }) => {
+    if (!matter) return
+    
+    const result = await createActivity({
+      client_id: matter.client_id,
       type: newActivity.type as ActivityEvent["type"],
-      timestamp: new Date().toISOString(),
       user: newActivity.user,
-      description: `added a ${newActivity.type} to '${matter.name}'.`,
+      description: `added a ${newActivity.type} to '${matter.title}'.`,
       details: newActivity.description,
+      timestamp: new Date().toISOString(),
+    })
+    
+    if (!result.success) {
+      console.error('Failed to create activity:', result.error)
     }
-    setActivity([event, ...activity])
   }
 
   return (
@@ -47,7 +49,7 @@ export default function WillsSuccessionMatterDetailPage() {
               <Badge variant="secondary" className="mb-2">
                 Wills & Successions
               </Badge>
-              <CardTitle className="text-3xl">{matter.name}</CardTitle>
+              <CardTitle className="text-3xl">{matter.title}</CardTitle>
               <CardDescription>{matter.id}</CardDescription>
             </div>
             <Badge variant="outline" className="text-lg px-4 py-2">
@@ -89,7 +91,7 @@ export default function WillsSuccessionMatterDetailPage() {
 
       <div className="grid md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <ActivityTimeline activity={activity} title="Matter Timeline" />
+          <ActivityTimeline activity={activities} title="Matter Timeline" />
           <AddActivityForm onAddActivity={handleAddActivity} />
         </div>
         <div className="space-y-6">{/* Placeholder for related contacts or other info */}</div>
