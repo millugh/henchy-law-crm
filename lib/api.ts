@@ -70,6 +70,25 @@ export interface Task {
   }
 }
 
+export interface CalendarEvent {
+  id: string
+  title: string
+  description: string | null
+  start_time: string
+  end_time: string
+  all_day: boolean
+  location: string | null
+  client_id: string | null
+  matter_id: string | null
+  user_id: string
+  created_at: string
+  updated_at: string
+  clients?: {
+    id: string
+    name: string
+  }
+}
+
 class ApiClient {
   private supabase = createClientComponentClient()
 
@@ -179,6 +198,71 @@ class ApiClient {
       return { data: data.task }
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Failed to create task' }
+    }
+  }
+
+  async fetchCalendarEvents(): Promise<ApiResponse<CalendarEvent[]>> {
+    try {
+      const response = await fetch('/api/calendar/events')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.events || [] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch calendar events' }
+    }
+  }
+
+  async createCalendarEvent(eventData: Omit<CalendarEvent, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<ApiResponse<CalendarEvent>> {
+    try {
+      const response = await fetch('/api/calendar/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.event }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create calendar event' }
+    }
+  }
+
+  async updateCalendarEvent(id: string, eventData: Partial<CalendarEvent>): Promise<ApiResponse<CalendarEvent>> {
+    try {
+      const response = await fetch(`/api/calendar/events/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.event }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update calendar event' }
+    }
+  }
+
+  async deleteCalendarEvent(id: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetch(`/api/calendar/events/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      return { data: undefined }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to delete calendar event' }
     }
   }
 }
