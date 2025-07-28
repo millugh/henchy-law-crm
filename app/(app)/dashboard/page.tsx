@@ -1,7 +1,7 @@
 "use client"
 
 import { DialogFooter } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { useToast } from "@/hooks/use-toast" // Import useToast
 
 import * as React from "react"
 import {
