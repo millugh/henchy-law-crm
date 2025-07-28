@@ -44,17 +44,16 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 
 import {
-  CLIENTS,
   USERS,
   contractsInProgress,
-  tasks as initialTasks,
-  TIMELINE_ACTIVITIES,
   todaysMeetings,
 } from "@/lib/data"
-import type { Task} from "@/lib/data"
+import type { Task} from "@/lib/api"
 import { CompactMatterList } from "@/components/compact-matter-list"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useClients } from "@/hooks/use-clients"
+import { useTasks } from "@/hooks/use-tasks"
+import { useTimeEntries } from "@/hooks/use-time-entries"
 import { PhoneDialerCard } from "@/components/phone-dialer-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -172,6 +171,7 @@ function DashboardClientSearch({
 const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
   const [selectedClient, setSelectedClient] = React.useState<any>(null)
   const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const { clients, loading: clientsLoading } = useClients()
 
   return (
     <Card>
@@ -185,7 +185,7 @@ const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any
         <CardTitle className="text-sm font-semibold text-foreground">Enter Time</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 grid gap-2">
-        <DashboardClientSearch clients={CLIENTS} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
+        <DashboardClientSearch clients={clients} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
         <div className="grid grid-cols-2 gap-2">
           <Input placeholder="Hours" type="number" step="0.1" className="bg-background" />
           <DatePicker date={date} setDate={setDate} />
@@ -427,19 +427,25 @@ const KeyClientsCard = ({
 
 const TasksCard = ({
   tasks,
-  setTasks,
+  updateTask,
   dndListeners,
   isOverlay = false,
 }: {
   tasks: Task[]
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  updateTask: (id: string, updates: Partial<Task>) => Promise<Task>
   dndListeners?: any
   isOverlay?: boolean
 }) => {
-  const handleTaskToggle = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)),
-    )
+  const handleTaskToggle = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed'
+      try {
+        await updateTask(taskId, { status: newStatus })
+      } catch (error) {
+        console.error('Failed to update task:', error)
+      }
+    }
   }
 
   return (
@@ -461,7 +467,7 @@ const TasksCard = ({
           <div key={task.id} className="flex items-center space-x-2 p-1 rounded-md hover:bg-accent">
             <Checkbox
               id={`task-${task.id}`}
-              checked={task.completed}
+              checked={task.status === 'completed'}
               onCheckedChange={() => handleTaskToggle(task.id)}
             />
             <div className="grid gap-1.5 leading-none flex-1">
@@ -469,12 +475,12 @@ const TasksCard = ({
                 htmlFor={`task-${task.id}`}
                 className={cn(
                   "text-xs font-medium cursor-pointer",
-                  task.completed && "line-through text-muted-foreground",
+                  task.status === 'completed' && "line-through text-muted-foreground",
                 )}
               >
-                {task.description}
+                {task.title}
               </Label>
-              <p className="text-[10px] text-muted-foreground">{task.clientName}</p>
+              <p className="text-[10px] text-muted-foreground">{task.clients?.name || 'No client'}</p>
             </div>
           </div>
         ))}
@@ -700,17 +706,10 @@ const initialLayout: Layout = {
 export default function Dashboard() {
   const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
   const { clients, loading: clientsLoading, error: clientsError } = useClients()
+  const { tasks, loading: tasksLoading, error: tasksError, updateTask } = useTasks()
   const [layout, setLayout] = React.useState<Layout>(initialLayout)
   const [keyClients, setKeyClients] = React.useState<KeyClient[]>([])
-  const [tasks, setTasks] = React.useState<Task[]>(initialTasks)
-  const [activities, setActivities] = React.useState<any[]>(
-    TIMELINE_ACTIVITIES.map((a) => ({
-      ...a,
-      user: USERS.find((u) => u.name === a.user) || USERS[0],
-      description: a.activity,
-      timestamp: new Date(a.timestamp).toLocaleString(),
-    })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
-  )
+  const [activities, setActivities] = React.useState<any[]>([])
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [activeRect, setActiveRect] = React.useState(null)
   const [savedLayouts, setSavedLayouts] = React.useState<SavedLayout[]>([])
@@ -921,7 +920,7 @@ export default function Dashboard() {
     }
     if (id === "tasks") {
       allProps.tasks = tasks
-      allProps.setTasks = setTasks
+      allProps.updateTask = updateTask
     }
     if (id === "new-note") {
     }
