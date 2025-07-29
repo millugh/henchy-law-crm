@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -16,19 +16,25 @@ interface ClientFormData {
   name: string
   email: string
   phone: string
+  fileNumber: string
   status: 'active' | 'inactive' | 'archived'
   practiceAreas: string[]
 }
 
 export default function NewClientPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { createClient } = useClients()
   const { toast } = useToast()
+  
+  const returnTo = searchParams.get('returnTo')
+  const context = searchParams.get('context')
   
   const [data, setData] = useState<ClientFormData>({
     name: "",
     email: "",
     phone: "",
+    fileNumber: "",
     status: "active",
     practiceAreas: [],
   })
@@ -55,6 +61,10 @@ export default function NewClientPage() {
     }
     if (!data.phone.trim()) {
       toast({ title: "Phone is required", variant: "destructive" })
+      return false
+    }
+    if (!data.fileNumber.trim()) {
+      toast({ title: "File number is required", variant: "destructive" })
       return false
     }
     if (data.practiceAreas.length === 0) {
@@ -85,7 +95,13 @@ export default function NewClientPage() {
       
       if (result.success) {
         toast({ title: "Client created successfully" })
-        router.push("/clients")
+        
+        if (returnTo === 'time-entry' && context === 'time-tracking') {
+          sessionStorage.setItem('newClientId', result.data?.id || '')
+          router.push('/time-tracking?openDialog=true')
+        } else {
+          router.push("/clients")
+        }
       } else {
         toast({ title: "Failed to create client", description: result.error, variant: "destructive" })
       }
@@ -142,6 +158,18 @@ export default function NewClientPage() {
             </div>
 
             <div className="grid gap-2">
+              <Label htmlFor="fileNumber">File # *</Label>
+              <Input
+                id="fileNumber"
+                type="text"
+                value={data.fileNumber}
+                onChange={(e) => setData({ ...data, fileNumber: e.target.value })}
+                placeholder="Enter file number"
+                required
+              />
+            </div>
+
+            <div className="grid gap-2">
               <Label>Client Status *</Label>
               <Select value={data.status} onValueChange={(value: 'active' | 'inactive' | 'archived') => setData({ ...data, status: value })}>
                 <SelectTrigger>
@@ -177,7 +205,13 @@ export default function NewClientPage() {
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => router.push("/clients")}
+                onClick={() => {
+                  if (returnTo === 'time-entry' && context === 'time-tracking') {
+                    router.push('/time-tracking')
+                  } else {
+                    router.push("/clients")
+                  }
+                }}
                 disabled={isSubmitting}
               >
                 Cancel

@@ -13,6 +13,10 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
 import { useClients } from "@/hooks/use-clients"
 import { useToast } from "@/hooks/use-toast"
@@ -40,8 +44,9 @@ export function TimeEntryDialog({
   onSave,
   timeEntryData,
 }: TimeEntryDialogProps) {
-  const { clients } = useClients()
+  const { clients, refetch } = useClients()
   const { toast } = useToast()
+  const [clientSearchOpen, setClientSearchOpen] = React.useState(false)
   
   const [data, setData] = React.useState<TimeEntryFormData>({
     date: new Date().toISOString().split('T')[0],
@@ -56,6 +61,16 @@ export function TimeEntryDialog({
   React.useEffect(() => {
     setData((d) => ({ ...d, ...timeEntryData }))
   }, [timeEntryData])
+
+  React.useEffect(() => {
+    const newClientId = sessionStorage.getItem('newClientId')
+    if (newClientId && isOpen) {
+      refetch().then(() => {
+        setData(prev => ({ ...prev, client_id: newClientId }))
+        sessionStorage.removeItem('newClientId')
+      })
+    }
+  }, [isOpen, refetch])
 
   const clientSelected = clients.find((c) => c.id === data.client_id)
 
@@ -90,18 +105,59 @@ export function TimeEntryDialog({
 
           <div className="grid gap-2">
             <Label>Client</Label>
-            <Select value={data.client_id} onValueChange={(value) => setData({ ...data, client_id: value })}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a client" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map((client) => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={clientSearchOpen}
+                  className="w-full justify-between"
+                >
+                  {data.client_id ? clients.find(client => client.id === data.client_id)?.name : "Select client..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Search client..." />
+                  <CommandList>
+                    <CommandEmpty>
+                      <div className="flex flex-col items-center gap-2 py-4">
+                        <p className="text-sm text-muted-foreground">No client found.</p>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setClientSearchOpen(false)
+                            window.location.href = `/clients/new?returnTo=time-entry&context=time-tracking`
+                          }}
+                          className="flex items-center gap-2"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Add Client
+                        </Button>
+                      </div>
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {clients.map((client) => (
+                        <CommandItem
+                          key={client.id}
+                          value={client.name}
+                          onSelect={() => {
+                            setData({ ...data, client_id: client.id })
+                            setClientSearchOpen(false)
+                          }}
+                        >
+                          <Check
+                            className={cn("mr-2 h-4 w-4", data.client_id === client.id ? "opacity-100" : "opacity-0")}
+                          />
+                          {client.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

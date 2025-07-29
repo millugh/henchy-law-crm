@@ -2,6 +2,7 @@
 
 import { PlusCircle, Download } from "lucide-react"
 import * as React from "react"
+import { useSearchParams } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +18,14 @@ export default function TimeTrackingPage() {
   const [entries, setEntries] = React.useState<TimeEntry[]>(TIME_ENTRIES)
   const [filter, setFilter] = React.useState("")
   const [dialogOpen, setDialogOpen] = React.useState(false)
+  const searchParams = useSearchParams()
+  
+  React.useEffect(() => {
+    if (searchParams.get('openDialog') === 'true') {
+      setDialogOpen(true)
+      window.history.replaceState({}, '', '/time-tracking')
+    }
+  }, [searchParams])
 
   const handleTimeEntrySave = (data: any) => {
     setDialogOpen(false)
