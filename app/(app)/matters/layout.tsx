@@ -9,7 +9,7 @@ interface MattersLayoutProps {
 export default function MattersLayout({ children }: MattersLayoutProps) {
   const matterNavItems = PRACTICE_AREAS.map((area) => ({
     title: area.name,
-    href: area.href,
+    href: `/matters/${area.name.toLowerCase().replace(/\s+/g, '-')}`,
   }))
 
   return (
