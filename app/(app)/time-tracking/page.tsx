@@ -3,6 +3,8 @@
 import { PlusCircle, Download } from "lucide-react"
 import * as React from "react"
 import { useSearchParams } from "next/navigation"
+import { startOfMonth, endOfMonth, isWithinInterval, parseISO, startOfWeek, endOfWeek, startOfDay, endOfDay, subDays } from "date-fns"
+import type { DateRange } from "react-day-picker"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,6 +19,10 @@ import { TimeEntryDialog } from "@/components/time-entry-dialog"
 export default function TimeTrackingPage() {
   const [entries, setEntries] = React.useState<TimeEntry[]>(TIME_ENTRIES)
   const [filter, setFilter] = React.useState("")
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+    from: startOfMonth(new Date()),
+    to: endOfMonth(new Date())
+  })
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const searchParams = useSearchParams()
   
@@ -31,11 +37,16 @@ export default function TimeTrackingPage() {
     setDialogOpen(false)
   }
 
-  const filteredEntries = entries.filter(
-    (entry) =>
-      entry.clientName.toLowerCase().includes(filter.toLowerCase()) ||
-      entry.description.toLowerCase().includes(filter.toLowerCase()),
-  )
+  const filteredEntries = entries.filter((entry) => {
+    const matchesText = entry.clientName.toLowerCase().includes(filter.toLowerCase()) ||
+      entry.description.toLowerCase().includes(filter.toLowerCase())
+    
+    const entryDate = parseISO(entry.date)
+    const matchesDate = !dateRange?.from || !dateRange?.to || 
+      isWithinInterval(entryDate, { start: dateRange.from, end: dateRange.to })
+    
+    return matchesText && matchesDate
+  })
 
   const totalHours = filteredEntries.reduce((acc, entry) => acc + entry.hours, 0)
   const totalBilled = filteredEntries.filter((e) => e.billed).reduce((acc, entry) => acc + entry.hours, 0)
@@ -80,7 +91,39 @@ export default function TimeTrackingPage() {
                 onChange={(e) => setFilter(e.target.value)}
                 className="w-full sm:w-[300px]"
               />
-              <DatePickerWithRange />
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange({ from: startOfDay(new Date()), to: endOfDay(new Date()) })}
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange({ from: startOfWeek(new Date()), to: endOfWeek(new Date()) })}
+                  >
+                    This Week
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) })}
+                  >
+                    This Month
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
+                  >
+                    Last 30 Days
+                  </Button>
+                </div>
+                <DatePickerWithRange date={dateRange} onDateChange={setDateRange} />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <DropdownMenu>
