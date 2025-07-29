@@ -1,7 +1,7 @@
 "use client"
 
 import { DialogFooter } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { useToast } from "@/hooks/use-toast" // Import useToast
 
 import * as React from "react"
 import {
@@ -41,18 +41,19 @@ import {
   Users,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import {
-  CLIENTS,
-  KEY_CLIENTS_DATA,
   USERS,
   contractsInProgress,
-  tasks as initialTasks,
-  TIMELINE_ACTIVITIES,
   todaysMeetings,
 } from "@/lib/data"
-import type { Task } from "@/lib/data"
+import type { Task} from "@/lib/api"
 import { CompactMatterList } from "@/components/compact-matter-list"
+import { useDashboardStats } from "@/hooks/use-dashboard-stats"
+import { useClients } from "@/hooks/use-clients"
+import { useTasks } from "@/hooks/use-tasks"
+import { useTimeEntries } from "@/hooks/use-time-entries"
 import { PhoneDialerCard } from "@/components/phone-dialer-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -170,6 +171,42 @@ function DashboardClientSearch({
 const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
   const [selectedClient, setSelectedClient] = React.useState<any>(null)
   const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [hours, setHours] = React.useState<string>('')
+  const [description, setDescription] = React.useState<string>('')
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const { clients, loading: clientsLoading } = useClients()
+  const { createTimeEntry } = useTimeEntries()
+
+  const handleSubmit = async () => {
+    if (!selectedClient || !hours || !description || !date) {
+      console.error('Please fill in all required fields')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const result = await createTimeEntry({
+        client_id: selectedClient.id,
+        date: date.toISOString().split('T')[0],
+        hours: parseFloat(hours),
+        description,
+        rate: 250
+      })
+      
+      if (result.success) {
+        setHours('')
+        setDescription('')
+        setSelectedClient(null)
+        console.log('Time entry created successfully')
+      } else {
+        console.error('Failed to create time entry:', result.error)
+      }
+    } catch (error) {
+      console.error('Failed to create time entry:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <Card>
@@ -183,20 +220,68 @@ const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any
         <CardTitle className="text-sm font-semibold text-foreground">Enter Time</CardTitle>
       </CardHeader>
       <CardContent className="p-3 pt-0 grid gap-2">
-        <DashboardClientSearch clients={CLIENTS} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
+        <DashboardClientSearch clients={clients} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
         <div className="grid grid-cols-2 gap-2">
-          <Input placeholder="Hours" type="number" step="0.1" className="bg-background" />
+          <Input 
+            placeholder="Hours" 
+            type="number" 
+            step="0.1" 
+            className="bg-background"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+          />
           <DatePicker date={date} setDate={setDate} />
         </div>
-        <Textarea placeholder="Description..." rows={2} className="bg-background" />
-        <Button className="bg-blue-600 text-white hover:bg-blue-600/90 w-full">Submit Entry</Button>
+        <Textarea 
+          placeholder="Description..." 
+          rows={2} 
+          className="bg-background"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <Button 
+          className="bg-blue-600 text-white hover:bg-blue-600/90 w-full"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !selectedClient || !hours || !description}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+        </Button>
       </CardContent>
     </Card>
   )
 }
 
-const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+const DateTimeCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
+  const [currentTime, setCurrentTime] = React.useState(new Date())
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  const formatDateCST = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      timeZone: 'America/Chicago',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTimeCST = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      timeZone: 'America/Chicago',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  }
+
   return (
     <Card>
       <CardHeader className="p-3 flex flex-row items-center">
@@ -205,28 +290,21 @@ const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any;
             <GripVertical className="h-5 w-5 text-muted-foreground/60" />
           </button>
         )}
-        <CardTitle className="text-sm font-semibold text-foreground">Calendar</CardTitle>
+        <Clock className="h-4 w-4 mr-2 text-primary" />
+        <CardTitle className="text-sm font-semibold text-foreground">Date & Time (CST)</CardTitle>
       </CardHeader>
-      <CardContent className="p-1">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          className="w-full"
-          classNames={{
-            months: "w-full",
-            month: "w-full space-y-1",
-            table: "w-full border-collapse",
-            head_row: "flex w-full",
-            row: "flex w-full mt-1",
-            head_cell: "flex-1 text-muted-foreground rounded-md font-normal text-[0.8rem] text-center h-8",
-            cell: "flex-1 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: cn(buttonVariants({ variant: "ghost" }), "w-full h-8 p-0 font-normal aria-selected:opacity-100"),
-            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
-            day_today: "bg-accent text-accent-foreground",
-            caption_label: "text-sm",
-          }}
-        />
+      <CardContent className="p-3 pt-0 text-center">
+        <div className="space-y-2">
+          <div className="text-lg font-semibold text-foreground">
+            {formatDateCST(currentTime)}
+          </div>
+          <div className="text-2xl font-bold text-primary">
+            {formatTimeCST(currentTime)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Central Standard Time
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
@@ -382,9 +460,18 @@ const KeyClientsCard = ({
   dndListeners?: any
   isOverlay?: boolean
 }) => {
+  const { clients: apiClients, loading: clientsLoading, error: clientsError } = useClients()
+  
   const handleAddClient = (newClient: any) => {
     setClients([...clients, newClient])
   }
+
+  const displayClients = clients.length > 0 ? clients : apiClients.slice(0, 5).map(client => ({
+    id: client.id,
+    name: client.name,
+    lastContact: new Date(client.lastInteraction).toLocaleDateString(),
+    revenue: 0
+  }))
 
   return (
     <Card>
@@ -398,9 +485,17 @@ const KeyClientsCard = ({
         <AddClientDialog onAddClient={handleAddClient} />
       </CardHeader>
       <CardContent className="p-3 pt-0 flex flex-col gap-2">
-        {clients.map((client) => (
-          <ClientCard key={client.id} {...client} />
-        ))}
+        {clientsLoading ? (
+          <div className="text-center py-4 text-sm text-gray-500">Loading clients...</div>
+        ) : clientsError ? (
+          <div className="text-center py-4 text-sm text-red-500">Failed to load clients</div>
+        ) : displayClients.length === 0 ? (
+          <div className="text-center py-4 text-sm text-gray-500">No clients found</div>
+        ) : (
+          displayClients.map((client) => (
+            <ClientCard key={client.id} {...client} />
+          ))
+        )}
       </CardContent>
     </Card>
   )
@@ -408,19 +503,25 @@ const KeyClientsCard = ({
 
 const TasksCard = ({
   tasks,
-  setTasks,
+  updateTask,
   dndListeners,
   isOverlay = false,
 }: {
   tasks: Task[]
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>
+  updateTask: (id: string, updates: Partial<Task>) => Promise<Task>
   dndListeners?: any
   isOverlay?: boolean
 }) => {
-  const handleTaskToggle = (taskId: string) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) => (task.id === taskId ? { ...task, completed: !task.completed } : task)),
-    )
+  const handleTaskToggle = async (taskId: string) => {
+    const task = tasks.find(t => t.id === taskId)
+    if (task) {
+      const newStatus = task.status === 'completed' ? 'pending' : 'completed'
+      try {
+        await updateTask(taskId, { status: newStatus })
+      } catch (error) {
+        console.error('Failed to update task:', error)
+      }
+    }
   }
 
   return (
@@ -442,7 +543,7 @@ const TasksCard = ({
           <div key={task.id} className="flex items-center space-x-2 p-1 rounded-md hover:bg-accent">
             <Checkbox
               id={`task-${task.id}`}
-              checked={task.completed}
+              checked={task.status === 'completed'}
               onCheckedChange={() => handleTaskToggle(task.id)}
             />
             <div className="grid gap-1.5 leading-none flex-1">
@@ -450,12 +551,12 @@ const TasksCard = ({
                 htmlFor={`task-${task.id}`}
                 className={cn(
                   "text-xs font-medium cursor-pointer",
-                  task.completed && "line-through text-muted-foreground",
+                  task.status === 'completed' && "line-through text-muted-foreground",
                 )}
               >
-                {task.description}
+                {task.title}
               </Label>
-              <p className="text-[10px] text-muted-foreground">{task.clientName}</p>
+              <p className="text-[10px] text-muted-foreground">{task.clients?.name || 'No client'}</p>
             </div>
           </div>
         ))}
@@ -465,50 +566,16 @@ const TasksCard = ({
 }
 
 const NewNoteCard = ({
-  onSaveNote,
-  onConvertToTask,
   dndListeners,
   isOverlay = false,
 }: {
-  onSaveNote: (note: { description: string; clientName?: string }) => void
-  onConvertToTask: (task: { description: string; clientName: string }) => void
   dndListeners?: any
   isOverlay?: boolean
 }) => {
-  const [selectedClient, setSelectedClient] = React.useState<any>(null)
-  const [noteText, setNoteText] = React.useState("")
-  const { toast } = useToast()
+  const router = useRouter()
 
-  const handleSave = () => {
-    if (!noteText) {
-      toast({ title: "Note is empty", description: "Please write a note before saving.", variant: "destructive" })
-      return
-    }
-    onSaveNote({
-      description: noteText,
-      clientName: selectedClient?.name,
-    })
-    setNoteText("")
-    setSelectedClient(null)
-    toast({ title: "Note Saved", description: "Your note has been added to the activity feed." })
-  }
-
-  const handleConvertToTask = () => {
-    if (!noteText) {
-      toast({
-        title: "Note is empty",
-        description: "Please write a note before converting to a task.",
-        variant: "destructive",
-      })
-      return
-    }
-    onConvertToTask({
-      description: noteText,
-      clientName: selectedClient?.name || "Unassigned",
-    })
-    setNoteText("")
-    setSelectedClient(null)
-    toast({ title: "Task Created", description: "The note has been converted to a task." })
+  const handleNewNote = () => {
+    router.push('/notes')
   }
 
   return (
@@ -520,23 +587,17 @@ const NewNoteCard = ({
           </button>
         )}
         <FilePenLine className="h-4 w-4 mr-2 text-yellow-600" />
-        <CardTitle className="text-sm font-semibold text-foreground flex-1">New Note</CardTitle>
+        <CardTitle className="text-sm font-semibold text-foreground flex-1">Notes</CardTitle>
       </CardHeader>
-      <CardContent className="p-3 pt-0 grid gap-2">
-        <DashboardClientSearch clients={CLIENTS} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
-        <Textarea
-          placeholder="Jot down a quick note..."
-          rows={3}
-          value={noteText}
-          onChange={(e) => setNoteText(e.target.value)}
-          className="bg-background focus:bg-background"
-        />
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={handleSave}>
-            Save
-          </Button>
-          <Button size="sm" className="bg-yellow-600 text-white hover:bg-yellow-600/90" onClick={handleConvertToTask}>
-            Convert to Task
+      <CardContent className="p-3 pt-0">
+        <div className="text-center py-4">
+          <p className="text-sm text-muted-foreground mb-4">Create and manage your notes with rich text formatting</p>
+          <Button 
+            onClick={handleNewNote}
+            className="bg-yellow-600 text-white hover:bg-yellow-600/90"
+          >
+            <FilePenLine className="h-4 w-4 mr-2" />
+            New Note
           </Button>
         </div>
       </CardContent>
@@ -563,7 +624,7 @@ const ActivityFeedCard = ({
       <Activity className="h-4 w-4 mr-2 text-green-500" />
       <CardTitle className="text-sm font-semibold text-foreground">Activity Feed</CardTitle>
     </CardHeader>
-    <CardContent className="p-3 pt-0 grid gap-3 max-h-96 overflow-y-auto">
+    <CardContent className="p-3 pt-0 grid gap-3 max-h-96 overflow-y-auto min-h-0">
       {activities.length > 0 ? (
         activities.map((activity) => (
           <div key={activity.id} className="flex items-start gap-3">
@@ -627,49 +688,53 @@ const QuickAccessGrid = ({ dndListeners, isOverlay = false }: { dndListeners?: a
   </Card>
 )
 
-const statsCardsData = [
-  {
-    title: "Active Matters",
-    value: "142",
-    change: "+2 from last month",
-    icon: Activity,
-  },
-  {
-    title: "Billable Hours (Month)",
-    value: "231.5",
-    change: "+18.2% from last month",
-    icon: DollarSign,
-  },
-  {
-    title: "Unbilled Revenue",
-    value: "$24,280.00",
-    change: "+12.1% from last month",
-    icon: CreditCard,
-  },
-  {
-    title: "New Clients (YTD)",
-    value: "+12",
-    change: "+5 since last year",
-    icon: Users,
-  },
-]
+const StatsCards = () => {
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
+  
+  const statsCardsData = [
+    {
+      title: "Active Matters",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.activeMatters?.toString() || "0",
+      change: statsError ? "Failed to load" : "Active cases",
+      icon: Activity,
+    },
+    {
+      title: "Billable Hours (Month)",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.totalBillableHours?.toString() || "0",
+      change: statsError ? "Failed to load" : "Total hours",
+      icon: DollarSign,
+    },
+    {
+      title: "Unbilled Revenue",
+      value: statsLoading ? "..." : statsError ? "Error" : `$${stats?.unbilledRevenue?.toLocaleString() || 0}`,
+      change: statsError ? "Failed to load" : "Ready to invoice",
+      icon: CreditCard,
+    },
+    {
+      title: "New Clients (YTD)",
+      value: statsLoading ? "..." : statsError ? "Error" : stats?.newClients?.toString() || "0",
+      change: statsError ? "Failed to load" : "This month",
+      icon: Users,
+    },
+  ]
 
-const StatsCards = () => (
-  <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-    {statsCardsData.map((stat) => (
-      <Card key={stat.title}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-          <stat.icon className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stat.value}</div>
-          <p className="text-xs text-muted-foreground">{stat.change}</p>
-        </CardContent>
-      </Card>
-    ))}
-  </div>
-)
+  return (
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      {statsCardsData.map((stat) => (
+        <Card key={stat.title}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+            <stat.icon className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-muted-foreground">{stat.change}</p>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
 
 type Layout = {
   [key: string]: string[]
@@ -697,7 +762,7 @@ const PhoneDialerWidget = ({ dndListeners, isOverlay = false }: { dndListeners?:
 
 const widgetsMap: Record<string, React.FC<any>> = {
   "time-entry": TimeEntryCard,
-  calendar: CalendarCard,
+  "date-time": DateTimeCard,
   meetings: MeetingsCard,
   "contracts-in-progress": ContractsInProgressWidget,
   dialer: PhoneDialerWidget,
@@ -711,21 +776,16 @@ const widgetsMap: Record<string, React.FC<any>> = {
 const initialLayout: Layout = {
   col1: ["time-entry", "new-note", "tasks"],
   col2: ["clients", "contracts-in-progress"],
-  col3: ["calendar", "meetings", "dialer", "quick-access", "activity-feed"],
+  col3: ["date-time", "meetings", "dialer", "quick-access", "activity-feed"],
 }
 
 export default function Dashboard() {
+  const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
+  const { clients, loading: clientsLoading, error: clientsError } = useClients()
+  const { tasks, loading: tasksLoading, error: tasksError, updateTask } = useTasks()
   const [layout, setLayout] = React.useState<Layout>(initialLayout)
-  const [keyClients, setKeyClients] = React.useState<KeyClient[]>(KEY_CLIENTS_DATA)
-  const [tasks, setTasks] = React.useState<Task[]>(initialTasks)
-  const [activities, setActivities] = React.useState<any[]>(
-    TIMELINE_ACTIVITIES.map((a) => ({
-      ...a,
-      user: USERS.find((u) => u.name === a.user) || USERS[0],
-      description: a.activity,
-      timestamp: new Date(a.timestamp).toLocaleString(),
-    })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
-  )
+  const [keyClients, setKeyClients] = React.useState<KeyClient[]>([])
+  const [activities, setActivities] = React.useState<any[]>([])
   const [activeId, setActiveId] = React.useState<string | null>(null)
   const [activeRect, setActiveRect] = React.useState(null)
   const [savedLayouts, setSavedLayouts] = React.useState<SavedLayout[]>([])
@@ -741,7 +801,17 @@ export default function Dashboard() {
       if (storedLayouts) setSavedLayouts(JSON.parse(storedLayouts))
 
       const storedClients = localStorage.getItem("dashboardKeyClients")
-      if (storedClients) setKeyClients(JSON.parse(storedClients))
+      if (storedClients) {
+        setKeyClients(JSON.parse(storedClients))
+      } else if (clients.length > 0) {
+        const topClients = clients.slice(0, 5).map(client => ({
+          id: client.id,
+          name: client.name,
+          lastContact: new Date(client.lastInteraction).toLocaleDateString(),
+          revenue: 0
+        }))
+        setKeyClients(topClients)
+      }
     } catch (error) {
       console.error("Failed to parse from localStorage", error)
       toast({
@@ -750,7 +820,7 @@ export default function Dashboard() {
         variant: "destructive",
       })
     }
-  }, [toast])
+  }, [toast, clients])
 
   const setAndPersistKeyClients = (clients: KeyClient[]) => {
     setKeyClients(clients)
@@ -926,11 +996,9 @@ export default function Dashboard() {
     }
     if (id === "tasks") {
       allProps.tasks = tasks
-      allProps.setTasks = setTasks
+      allProps.updateTask = updateTask
     }
     if (id === "new-note") {
-      allProps.onSaveNote = handleAddActivity
-      allProps.onConvertToTask = handleAddTask
     }
     if (id === "activity-feed") {
       allProps.activities = activities

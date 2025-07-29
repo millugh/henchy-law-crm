@@ -1,4 +1,3 @@
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret-here';
 
 CREATE TABLE IF NOT EXISTS public.user_profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,

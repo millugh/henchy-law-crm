@@ -15,23 +15,32 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CLIENTS, type TitlePolicyMatter } from "@/lib/data"
+import { useClients } from "@/hooks/use-clients"
+import { type Matter } from "@/lib/api"
 import { useState } from "react"
 
 interface TitlePolicyMatterDialogProps {
-  matter?: TitlePolicyMatter
-  onSave: (matter: Omit<TitlePolicyMatter, "id" | "clientName">) => void
+  matter?: Matter
+  onSave: (matter: {
+    policyNumber: string
+    propertyAddress: string
+    insuredParties: string
+    coverageAmount: number
+    status: string
+    clientId: string
+  }) => void
   children: React.ReactNode
 }
 
 export function TitlePolicyMatterDialog({ matter, onSave, children }: TitlePolicyMatterDialogProps) {
+  const { clients } = useClients()
   const [isOpen, setIsOpen] = useState(false)
-  const [policyNumber, setPolicyNumber] = useState(matter?.policyNumber || "")
-  const [propertyAddress, setPropertyAddress] = useState(matter?.propertyAddress || "")
-  const [insuredParties, setInsuredParties] = useState(matter?.insuredParties || "")
-  const [coverageAmount, setCoverageAmount] = useState(matter?.coverageAmount || 0)
+  const [policyNumber, setPolicyNumber] = useState(matter?.policy_number || "")
+  const [propertyAddress, setPropertyAddress] = useState(matter?.property_address || "")
+  const [insuredParties, setInsuredParties] = useState(matter?.insured_parties || "")
+  const [coverageAmount, setCoverageAmount] = useState(matter?.coverage_amount || 0)
   const [status, setStatus] = useState(matter?.status || "Pending")
-  const [clientId, setClientId] = useState(matter?.clientId || "")
+  const [clientId, setClientId] = useState(matter?.client_id || "")
 
   const handleSave = () => {
     if (!policyNumber || !propertyAddress || !status || !clientId || !insuredParties || coverageAmount <= 0) {
@@ -109,7 +118,7 @@ export function TitlePolicyMatterDialog({ matter, onSave, children }: TitlePolic
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
               <SelectContent>
-                {CLIENTS.filter((c) => c.practiceAreas.includes("Title Policy Underwriting")).map((client) => (
+                {clients.filter((c) => c.practiceAreas?.includes("Title Policy Underwriting")).map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
                   </SelectItem>

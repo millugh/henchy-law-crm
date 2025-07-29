@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "henchy-law-crm",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -50,6 +50,13 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.52.0",
     "@tailwindcss/typography": "latest",
+    "@tiptap/extension-bullet-list": "^3.0.7",
+    "@tiptap/extension-list-item": "^3.0.7",
+    "@tiptap/extension-ordered-list": "^3.0.7",
+    "@tiptap/extension-text-align": "^3.0.7",
+    "@tiptap/pm": "^3.0.7",
+    "@tiptap/react": "^3.0.7",
+    "@tiptap/starter-kit": "^3.0.7",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -11,7 +11,9 @@ import type { DateSelectArg, EventClickArg, EventDropArg } from "@fullcalendar/c
 import { format, parseISO } from "date-fns"
 import { PlusCircle, Trash2 } from "lucide-react"
 
-import { CALENDAR_EVENTS, CLIENTS, type CalendarEvent } from "@/lib/data"
+import { type CalendarEvent } from "@/lib/api"
+import { useCalendarEvents, type FullCalendarEvent } from "@/hooks/use-calendar-events"
+import { useClients } from "@/hooks/use-clients"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -63,12 +65,14 @@ function EventDialog({
   onSave,
   onDelete,
   eventData,
+  clients,
 }: {
   isOpen: boolean
   onClose: () => void
   onSave: (d: EventFormData) => void
   onDelete: (id: string) => void
   eventData: Partial<EventFormData> | null
+  clients: any[]
 }) {
   const [data, setData] = React.useState<EventFormData>({
     title: "",
@@ -85,7 +89,7 @@ function EventDialog({
     setData((d) => ({ ...d, ...eventData }))
   }, [eventData])
 
-  const clientSelected = CLIENTS.find((c) => c.id === data.clientId) ?? null
+  const clientSelected = clients.find((c) => c.id === data.clientId) ?? null
   const fmt = (s: string) => (s ? format(parseISO(s), data.allDay ? "yyyy-MM-dd" : "yyyy-MM-dd'T'HH:mm") : "")
 
   return (
@@ -107,7 +111,7 @@ function EventDialog({
             {/* Label and ClientSearch components are assumed to be imported */}
             <label>Client</label>
             <ClientSearch
-              clients={CLIENTS}
+              clients={clients}
               selectedClient={clientSelected}
               onSelectClient={(c) => setData({ ...data, clientId: c?.id || "" })}
             />
@@ -190,10 +194,11 @@ function EventDialog({
    4.  Main Calendar Page
 -------------------------------------------------- */
 export default function CalendarPage() {
-  const [events, setEvents] = React.useState<CalendarEvent[]>(CALENDAR_EVENTS)
+  const { events, loading, error, createEvent, updateEvent, deleteEvent } = useCalendarEvents()
+  const { clients } = useClients()
   const [dialogOpen, setDialogOpen] = React.useState(false)
   const [draftEvent, setDraftEvent] = React.useState<Partial<EventFormData> | null>(null)
-  const [selectedEvent, setSelectedEvent] = React.useState<CalendarEvent | null>(null)
+  const [selectedEvent, setSelectedEvent] = React.useState<FullCalendarEvent | null>(null)
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
 
   const isMobile = useMediaQuery("(max-width: 768px)")
@@ -206,75 +211,68 @@ export default function CalendarPage() {
   }
 
   const handleEventClick = (clickInfo: EventClickArg) => {
-    setSelectedEvent(clickInfo.event.toPlainObject() as CalendarEvent)
+    setSelectedEvent(clickInfo.event.toPlainObject() as FullCalendarEvent)
     setIsDialogOpen(true)
   }
 
-  const onEventDrop = (arg: EventDropArg) => {
-    setEvents((prev) =>
-      prev.map((ev) => (ev.id === arg.event.id ? { ...ev, start: arg.event.startStr, end: arg.event.endStr } : ev)),
-    )
+  const onEventDrop = async (arg: EventDropArg) => {
+    try {
+      await updateEvent(arg.event.id, {
+        start_time: arg.event.startStr,
+        end_time: arg.event.endStr,
+      })
+    } catch (error) {
+      toast({ title: "Failed to update event", variant: "destructive" })
+    }
   }
 
-  /* ----- Save / Delete ----- */
-  const handleSave = (data: EventFormData) => {
-    const colorMap: Record<string, string> = {
-      Meeting: "#3b82f6",
-      Deadline: "#ef4444",
-      "Court Appearance": "#a855f7",
-      Consultation: "#14b8a6",
-      Other: "#71717a",
-    }
-    const color = colorMap[data.type] ?? colorMap.Other
-
-    setEvents((prev) => {
-      if (data.id) {
-        // edit
-        return prev.map((ev) =>
-          ev.id === data.id
-            ? {
-                ...ev,
-                title: data.title,
-                start: data.start,
-                end: data.end,
-                allDay: data.allDay,
-                extendedProps: {
-                  clientId: data.clientId,
-                  clientName: CLIENTS.find((c) => c.id === data.clientId)?.name ?? "",
-                  type: data.type,
-                  description: data.description,
-                },
-                backgroundColor: color,
-                borderColor: color,
-              }
-            : ev,
-        )
+  const handleSave = async (data: EventFormData) => {
+    try {
+      const eventData = {
+        title: data.title,
+        description: data.description,
+        start_time: data.start,
+        end_time: data.end,
+        all_day: data.allDay,
+        client_id: data.clientId || null,
+        matter_id: null,
+        location: null,
       }
-      // new
-      return [
-        ...prev,
-        {
-          id: `evt-${Date.now()}`,
-          title: data.title,
-          start: data.start,
-          end: data.end,
-          allDay: data.allDay,
-          backgroundColor: color,
-          borderColor: color,
-          extendedProps: {
-            clientId: data.clientId,
-            clientName: CLIENTS.find((c) => c.id === data.clientId)?.name ?? "",
-            type: data.type,
-            description: data.description,
-          },
-        },
-      ]
-    })
+
+      if (data.id) {
+        const result = await updateEvent(data.id, eventData)
+        if (result.success) {
+          toast({ title: "Event updated successfully" })
+        } else {
+          toast({ title: "Failed to update event", variant: "destructive" })
+        }
+      } else {
+        const result = await createEvent(eventData)
+        if (result.success) {
+          toast({ title: "Event created successfully" })
+        } else {
+          toast({ title: "Failed to create event", variant: "destructive" })
+        }
+      }
+    } catch (error) {
+      toast({ title: "An error occurred", variant: "destructive" })
+    }
+    
     setDialogOpen(false)
   }
 
-  const handleDelete = (id: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== id))
+  const handleDelete = async (id: string) => {
+    try {
+      const result = await deleteEvent(id)
+      if (result.success) {
+        toast({ title: "Event deleted successfully" })
+      } else {
+        toast({ title: "Failed to delete event", variant: "destructive" })
+      }
+    } catch (error) {
+      toast({ title: "An error occurred", variant: "destructive" })
+    }
+    
     setDialogOpen(false)
   }
 
@@ -294,23 +292,33 @@ export default function CalendarPage() {
           <CardTitle>Calendar</CardTitle>
         </CardHeader>
         <CardContent className="p-0 h-full">
-          <FullCalendar
-            plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-            initialView="dayGridMonth"
-            headerToolbar={{
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
-            }}
-            events={events}
-            selectable
-            editable
-            height={isMobile ? "auto" : "100%"}
-            select={onSelect}
-            eventClick={handleEventClick}
-            eventDrop={onEventDrop}
-            dayMaxEvents
-          />
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-muted-foreground">Loading events...</div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-full">
+              <div className="text-destructive">Error loading events: {error}</div>
+            </div>
+          ) : (
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: "prev,next today",
+                center: "title",
+                right: "dayGridMonth,timeGridWeek,timeGridDay,listWeek",
+              }}
+              events={events}
+              selectable
+              editable
+              height={isMobile ? "auto" : "100%"}
+              select={onSelect}
+              eventClick={handleEventClick}
+              eventDrop={onEventDrop}
+              dayMaxEvents
+            />
+          )}
         </CardContent>
       </Card>
 
@@ -320,6 +328,7 @@ export default function CalendarPage() {
         onSave={handleSave}
         onDelete={handleDelete}
         eventData={draftEvent}
+        clients={clients}
       />
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

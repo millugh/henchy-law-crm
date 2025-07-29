@@ -38,7 +38,7 @@ export function CompactMatterList({
           View All
         </Link>
       </CardHeader>
-      <CardContent className="p-3 pt-0">
+      <CardContent className="p-3 pt-0 overflow-hidden">
         <div className="space-y-4">
           {matters.map((matter) => (
             <div key={matter.id} className="flex items-center">

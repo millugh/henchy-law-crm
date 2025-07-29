@@ -16,26 +16,35 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CLIENTS, type WillsSuccessionMatter } from "@/lib/data"
+import { useClients } from "@/hooks/use-clients"
+import { type Matter } from "@/lib/api"
 import { useState } from "react"
 import { DatePicker } from "@/components/ui/date-picker"
 
 interface WillsSuccessionMatterDialogProps {
-  matter?: WillsSuccessionMatter
-  onSave: (matter: Omit<WillsSuccessionMatter, "id" | "clientName">) => void
+  matter?: Matter
+  onSave: (matter: {
+    name: string
+    status: string
+    clientId: string
+    decedentName: string
+    dateOfDeath?: string
+    keyBeneficiaries: string
+  }) => void
   children: React.ReactNode
 }
 
 export function WillsSuccessionMatterDialog({ matter, onSave, children }: WillsSuccessionMatterDialogProps) {
+  const { clients } = useClients()
   const [isOpen, setIsOpen] = useState(false)
-  const [name, setName] = useState(matter?.name || "")
+  const [name, setName] = useState(matter?.title || "")
   const [status, setStatus] = useState(matter?.status || "Drafting")
-  const [clientId, setClientId] = useState(matter?.clientId || "")
-  const [decedentName, setDecedentName] = useState(matter?.decedentName || "")
+  const [clientId, setClientId] = useState(matter?.client_id || "")
+  const [decedentName, setDecedentName] = useState(matter?.decedent_name || "")
   const [dateOfDeath, setDateOfDeath] = useState<Date | undefined>(
-    matter?.dateOfDeath ? new Date(matter.dateOfDeath) : undefined,
+    matter?.date_of_death ? new Date(matter.date_of_death) : undefined,
   )
-  const [keyBeneficiaries, setKeyBeneficiaries] = useState(matter?.keyBeneficiaries || "")
+  const [keyBeneficiaries, setKeyBeneficiaries] = useState(matter?.key_beneficiaries || "")
 
   const handleSave = () => {
     if (!name || !status || !clientId || !decedentName) {
@@ -79,7 +88,7 @@ export function WillsSuccessionMatterDialog({ matter, onSave, children }: WillsS
                 <SelectValue placeholder="Select a client" />
               </SelectTrigger>
               <SelectContent>
-                {CLIENTS.filter((c) => c.practiceAreas.includes("Wills & Successions")).map((client) => (
+                {clients.filter((c) => c.practiceAreas?.includes("Wills & Successions")).map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
                   </SelectItem>

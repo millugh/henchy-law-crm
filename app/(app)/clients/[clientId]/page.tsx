@@ -3,10 +3,8 @@
 import { notFound, useParams } from "next/navigation"
 import {
   CLIENTS,
-  EMPLOYEES,
-  ACTIVITY_TIMELINE,
+  TIMELINE_ACTIVITIES,
   type Client,
-  type Employee,
   type ActivityEvent,
   realEstateMatters,
   titlePolicyMatters,
@@ -60,35 +58,14 @@ function ClientHeader({ client }: { client: Client }) {
   )
 }
 
-function KeyContacts({ contacts }: { contacts: Employee[] }) {
+function KeyContacts() {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Key Contacts</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {contacts.map((contact) => (
-          <div key={contact.id} className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold">
-                {contact.name} {contact.isPrimaryContact && <Badge className="ml-2">Primary</Badge>}
-              </p>
-              <p className="text-sm text-muted-foreground">{contact.title}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <CXDialer numberToCall={contact.phone}>
-                <Button variant="outline" size="icon">
-                  <Phone className="h-4 w-4" />
-                </Button>
-              </CXDialer>
-              <Button variant="outline" size="icon" asChild>
-                <a href={`mailto:${contact.email}`}>
-                  <Mail className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </div>
-        ))}
+        <p className="text-sm text-muted-foreground">No contacts available for this client.</p>
         <Button variant="outline" className="w-full bg-transparent">
           <PlusCircle className="mr-2 h-4 w-4" /> Add Contact
         </Button>
@@ -136,9 +113,8 @@ export default function ClientDetailPage() {
   const params = useParams()
   const clientId = params.clientId as string
   const client = CLIENTS.find((c) => c.id === clientId)
-  const contacts = EMPLOYEES.filter((e) => e.clientId === clientId)
   const [activity, setActivity] = useState<ActivityEvent[]>(
-    ACTIVITY_TIMELINE.filter((a) => a.clientId === clientId).sort(
+    TIMELINE_ACTIVITIES.filter((a) => a.clientId === clientId).sort(
       (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     ),
   )
@@ -169,7 +145,7 @@ export default function ClientDetailPage() {
           <AddActivityForm onAddActivity={handleAddActivity} />
         </div>
         <div className="space-y-6">
-          <KeyContacts contacts={contacts} />
+          <KeyContacts />
           <ClientMatters clientId={client.id} />
         </div>
       </div>

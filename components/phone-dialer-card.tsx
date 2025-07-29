@@ -34,7 +34,7 @@ export function PhoneDialerCard({ dndListeners, isOverlay = false }: { dndListen
           View All
         </Link>
       </CardHeader>
-      <CardContent className="p-3 pt-0">
+      <CardContent className="p-3 pt-0 overflow-hidden">
         <div className="space-y-4">
           {recentCalls.map((call, index) => (
             <div key={index} className="flex items-center">

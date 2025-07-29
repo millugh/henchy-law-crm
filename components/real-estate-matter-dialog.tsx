@@ -20,7 +20,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CLIENTS, TRANSACTION_TYPES, type RealEstateMatter } from "@/lib/data"
+import { useClients } from "@/hooks/use-clients"
+import { TRANSACTION_TYPES, type RealEstateMatter } from "@/lib/data"
 import { useState } from "react"
 
 const realEstateMatterSchema = z.object({
@@ -56,6 +57,7 @@ interface RealEstateMatterDialogProps {
 }
 
 export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateMatterDialogProps) {
+  const { clients } = useClients()
   const [isOpen, setIsOpen] = useState(false)
   
   const form = useForm<RealEstateMatterFormValues>({
@@ -408,7 +410,7 @@ export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateM
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {CLIENTS.map((client) => (
+                        {clients.filter(c => c.practiceAreas?.includes('Real Estate')).map((client) => (
                           <SelectItem key={client.id} value={client.id}>
                             {client.name}
                           </SelectItem>

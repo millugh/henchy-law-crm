@@ -15,22 +15,40 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { willsSuccessionMatters, CLIENTS, type WillsSuccessionMatter } from "@/lib/data"
+import { useMatters } from "@/hooks/use-matters"
+import { useClients } from "@/hooks/use-clients"
+import { type Matter } from "@/lib/api"
 import { WillsSuccessionMatterDialog } from "@/components/wills-succession-matter-dialog"
 
 export default function WillsSuccessionsMattersPage() {
-  const [matters, setMatters] = useState<WillsSuccessionMatter[]>(willsSuccessionMatters)
+  const { matters, loading, error, createMatter } = useMatters('wills_successions')
+  const { clients } = useClients()
 
-  const handleSaveMatter = (data: Omit<WillsSuccessionMatter, "id" | "clientName">) => {
-    const client = CLIENTS.find((c) => c.id === data.clientId)
-    if (!client) return
-
-    const newMatter: WillsSuccessionMatter = {
-      id: `WSM-${Date.now()}`,
-      ...data,
-      clientName: client.name,
+  const handleSaveMatter = async (data: {
+    name: string
+    status: string
+    clientId: string
+    decedentName: string
+    dateOfDeath?: string
+    keyBeneficiaries: string
+  }) => {
+    const result = await createMatter({
+      title: data.name,
+      description: `Wills & Successions matter for ${data.decedentName}`,
+      status: data.status,
+      matter_type: 'wills_successions',
+      open_date: new Date().toISOString().split('T')[0],
+      close_date: null,
+      client_id: data.clientId,
+      practice_area_id: null,
+      decedent_name: data.decedentName,
+      date_of_death: data.dateOfDeath,
+      key_beneficiaries: data.keyBeneficiaries,
+    })
+    
+    if (!result.success) {
+      console.error('Failed to create matter:', result.error)
     }
-    setMatters([newMatter, ...matters])
   }
 
   return (
@@ -48,53 +66,63 @@ export default function WillsSuccessionsMattersPage() {
         </WillsSuccessionMatterDialog>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Matter Name</TableHead>
-              <TableHead>Client</TableHead>
-              <TableHead>Decedent</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {matters.map((matter) => (
-              <TableRow key={matter.id}>
-                <TableCell className="font-medium">
-                  <Link href={`/matters/wills-successions/${matter.id}`} className="hover:underline">
-                    {matter.name}
-                  </Link>
-                </TableCell>
-                <TableCell>{matter.clientName}</TableCell>
-                <TableCell>{matter.decedentName}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">{matter.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem asChild>
-                        <Link href={`/matters/wills-successions/${matter.id}`}>View Details</Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-muted-foreground">Loading matters...</div>
+          </div>
+        ) : error ? (
+          <div className="flex items-center justify-center py-8">
+            <div className="text-destructive">Error loading matters: {error}</div>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Matter Name</TableHead>
+                <TableHead>Client</TableHead>
+                <TableHead>Decedent</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {matters.map((matter) => (
+                <TableRow key={matter.id}>
+                  <TableCell className="font-medium">
+                    <Link href={`/matters/wills-successions/${matter.id}`} className="hover:underline">
+                      {matter.title}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{matter.clients?.name}</TableCell>
+                  <TableCell>{matter.decedent_name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{matter.status}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Toggle menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem asChild>
+                          <Link href={`/matters/wills-successions/${matter.id}`}>View Details</Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem>Delete</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
       </CardContent>
     </Card>
   )

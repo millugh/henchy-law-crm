@@ -33,11 +33,33 @@ export function DocumentUploadDialog({ onUpload, children }: DocumentUploadDialo
     }
   }
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (files.length > 0) {
-      onUpload(files)
-      setFiles([])
-      setIsOpen(false)
+      try {
+        const uploadPromises = files.map(async (file) => {
+          const formData = new FormData()
+          formData.append('file', file)
+          formData.append('folderPath', '/documents')
+
+          const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+          })
+
+          if (!response.ok) {
+            throw new Error(`Failed to upload ${file.name}`)
+          }
+
+          return response.json()
+        })
+
+        await Promise.all(uploadPromises)
+        onUpload(files)
+        setFiles([])
+        setIsOpen(false)
+      } catch (error) {
+        console.error('Upload error:', error)
+      }
     }
   }
 
