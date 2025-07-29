@@ -48,6 +48,7 @@ export type PracticeArea = {
   name: string
   description: string
   clientCount: number
+  href: string
 }
 
 export type Matter = {
@@ -296,13 +297,13 @@ export const tasks: Task[] = [
 ]
 
 export const PRACTICE_AREAS: PracticeArea[] = [
-  { name: "Corporate", description: "General corporate law and governance.", clientCount: 12 },
-  { name: "Real Estate", description: "Commercial and residential real estate transactions.", clientCount: 8 },
-  { name: "Litigation", description: "Civil litigation and dispute resolution.", clientCount: 5 },
-  { name: "Banking", description: "Regulatory compliance and financial transactions.", clientCount: 3 },
-  { name: "Healthcare", description: "Healthcare regulations and compliance.", clientCount: 4 },
-  { name: "Non-profit", description: "Legal services for non-profit organizations.", clientCount: 2 },
-  { name: "Technology", description: "Tech-related legal matters, including IP.", clientCount: 1 },
+  { name: "Corporate", description: "General corporate law and governance.", clientCount: 12, href: "/matters/corporate" },
+  { name: "Real Estate", description: "Commercial and residential real estate transactions.", clientCount: 8, href: "/matters/real-estate" },
+  { name: "Litigation", description: "Civil litigation and dispute resolution.", clientCount: 5, href: "/matters/litigation" },
+  { name: "Banking", description: "Regulatory compliance and financial transactions.", clientCount: 3, href: "/matters/banking" },
+  { name: "Healthcare", description: "Healthcare regulations and compliance.", clientCount: 4, href: "/matters/healthcare" },
+  { name: "Non-profit", description: "Legal services for non-profit organizations.", clientCount: 2, href: "/matters/non-profit" },
+  { name: "Technology", description: "Tech-related legal matters, including IP.", clientCount: 1, href: "/matters/technology" },
 ]
 
 export const MATTERS: Matter[] = [
