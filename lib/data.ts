@@ -49,6 +49,7 @@ export type PracticeArea = {
   name: string
   description: string
   clientCount: number
+  href: string
 }
 
 export type Matter = {
@@ -84,6 +85,22 @@ export type RealEstateMatter = {
   clientId: string
   clientName: string
   description: string
+  buyer?: string
+  seller?: string
+  municipalAddress: string
+  city: string
+  state: string
+  zipCode: string
+  subdivision?: string
+  lot?: string
+  block?: string
+  parcelNumber?: string
+  priorYearTaxes?: number
+  transactionType: 'Lease' | 'Purchase and Sale Agreement' | 'Lease with Option to Purchase' | 'Lease Purchase' | 'Option to Purchase' | 'Sale-Leaseback'
+  dueDiligencePeriod?: number
+  asIsLanguage: boolean
+  titlePolicyNeeded: boolean
+  henchyLawFileNumber?: string
 }
 
 export type Document = {
@@ -281,13 +298,13 @@ export const tasks: Task[] = [
 ]
 
 export const PRACTICE_AREAS: PracticeArea[] = [
-  { name: "Corporate", description: "General corporate law and governance.", clientCount: 12 },
-  { name: "Real Estate", description: "Commercial and residential real estate transactions.", clientCount: 8 },
-  { name: "Litigation", description: "Civil litigation and dispute resolution.", clientCount: 5 },
-  { name: "Banking", description: "Regulatory compliance and financial transactions.", clientCount: 3 },
-  { name: "Healthcare", description: "Healthcare regulations and compliance.", clientCount: 4 },
-  { name: "Non-profit", description: "Legal services for non-profit organizations.", clientCount: 2 },
-  { name: "Technology", description: "Tech-related legal matters, including IP.", clientCount: 1 },
+  { name: "Corporate", description: "General corporate law and governance.", clientCount: 12, href: "/matters/corporate" },
+  { name: "Real Estate", description: "Commercial and residential real estate transactions.", clientCount: 8, href: "/matters/real-estate" },
+  { name: "Litigation", description: "Civil litigation and dispute resolution.", clientCount: 5, href: "/matters/litigation" },
+  { name: "Banking", description: "Regulatory compliance and financial transactions.", clientCount: 3, href: "/matters/banking" },
+  { name: "Healthcare", description: "Healthcare regulations and compliance.", clientCount: 4, href: "/matters/healthcare" },
+  { name: "Non-profit", description: "Legal services for non-profit organizations.", clientCount: 2, href: "/matters/non-profit" },
+  { name: "Technology", description: "Tech-related legal matters, including IP.", clientCount: 1, href: "/matters/technology" },
 ]
 
 export const MATTERS: Matter[] = [
@@ -555,6 +572,22 @@ export const realEstateMatters: RealEstateMatter[] = [
     clientId: "ep-breaux",
     clientName: "E.P. Breaux Utility Services, LLC",
     description: "Closing scheduled for next week. All documents have been prepared.",
+    buyer: "John Smith",
+    seller: "Jane Doe",
+    municipalAddress: "123 Main St",
+    city: "Baton Rouge",
+    state: "LA",
+    zipCode: "70808",
+    subdivision: "Oak Hills",
+    lot: "15",
+    block: "A",
+    parcelNumber: "123-456-789",
+    priorYearTaxes: 2500,
+    transactionType: "Purchase and Sale Agreement",
+    dueDiligencePeriod: 30,
+    asIsLanguage: false,
+    titlePolicyNeeded: true,
+    henchyLawFileNumber: "HLF-2024-001",
   },
   {
     id: "MAT-014",
@@ -564,6 +597,22 @@ export const realEstateMatters: RealEstateMatter[] = [
     clientId: "harmony-center",
     clientName: "Harmony Center, Inc.",
     description: "Awaiting inspection reports before proceeding.",
+    buyer: "Harmony Center, Inc.",
+    seller: "Development Corp",
+    municipalAddress: "Lot 45",
+    city: "Prairieville",
+    state: "LA",
+    zipCode: "70769",
+    subdivision: "Oak Hills Subdivision",
+    lot: "45",
+    block: "B",
+    parcelNumber: "456-789-123",
+    priorYearTaxes: 1800,
+    transactionType: "Purchase and Sale Agreement",
+    dueDiligencePeriod: 45,
+    asIsLanguage: true,
+    titlePolicyNeeded: true,
+    henchyLawFileNumber: "HLF-2024-002",
   },
   {
     id: "MAT-015",
@@ -572,7 +621,22 @@ export const realEstateMatters: RealEstateMatter[] = [
     status: "Negotiation",
     clientId: "red-river-bank",
     clientName: "Red River Bank",
-    description: "Reviewing tenant’s proposed changes to the lease agreement.",
+    description: "Reviewing tenant's proposed changes to the lease agreement.",
+    buyer: "",
+    seller: "",
+    municipalAddress: "459 Lafayette St",
+    city: "Baton Rouge",
+    state: "LA",
+    zipCode: "70801",
+    subdivision: "",
+    lot: "",
+    block: "",
+    parcelNumber: "789-123-456",
+    priorYearTaxes: 5200,
+    transactionType: "Lease",
+    asIsLanguage: false,
+    titlePolicyNeeded: false,
+    henchyLawFileNumber: "HLF-2024-003",
   },
 ]
 
@@ -615,6 +679,15 @@ export const titlePolicyMatters: TitlePolicyMatter[] = [
     description: "Examiner reviewing title exceptions.",
   },
 ]
+
+export const TRANSACTION_TYPES = [
+  'Lease',
+  'Purchase and Sale Agreement', 
+  'Lease with Option to Purchase',
+  'Lease Purchase',
+  'Option to Purchase',
+  'Sale-Leaseback'
+] as const
 
 export const willsSuccessionMatters: WillsSuccessionMatter[] = [
   {
