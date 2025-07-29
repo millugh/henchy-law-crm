@@ -565,45 +565,6 @@ const ActivityFeedCard = ({
   </Card>
 )
 
-const quickAccessItems = [
-  { title: "Real Estate", icon: Home, href: "/matters/real-estate" },
-  { title: "Title Policies", icon: ShieldCheck, href: "/matters/title-policy" },
-  { title: "Successions", icon: BookMarked, href: "/matters/wills-successions" },
-  { title: "Contracts", icon: GanttChartSquare, href: "/contract-templates" },
-  { title: "Letters", icon: Mail, href: "/letter-templates" },
-  { title: "Documents", icon: Folder, href: "/documents" },
-]
-
-const QuickAccessWidget = ({ title, icon: Icon, href }: { title: string; icon: React.ElementType; href: string }) => (
-  <Link href={href} passHref>
-    <Card
-      as="a"
-      className="aspect-square flex flex-col items-center justify-center text-center p-2 hover:bg-accent cursor-pointer transition-colors"
-    >
-      <Icon className="h-7 w-7 mb-2 text-primary" />
-      <p className="text-xs font-semibold text-foreground leading-tight">{title}</p>
-    </Card>
-  </Link>
-)
-
-const QuickAccessGrid = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => (
-  <Card>
-    <CardHeader className="p-3 flex flex-row items-center">
-      {!isOverlay && (
-        <button {...dndListeners} className="cursor-grab p-1 -ml-1 mr-1">
-          <GripVertical className="h-5 w-5 text-muted-foreground/60" />
-        </button>
-      )}
-      <CardTitle className="text-sm font-semibold text-foreground">Quick Access</CardTitle>
-    </CardHeader>
-    <CardContent className="p-3 pt-0 grid grid-cols-3 gap-2">
-      {quickAccessItems.map((item) => (
-        <QuickAccessWidget key={item.title} {...item} />
-      ))}
-    </CardContent>
-  </Card>
-)
-
 const StatsCards = () => {
   const { stats, loading: statsLoading, error: statsError } = useDashboardStats()
   
@@ -683,7 +644,6 @@ const widgetsMap: Record<string, React.FC<any>> = {
   dialer: PhoneDialerWidget,
   tasks: TasksCard,
   "new-note": NewNoteCard,
-  "quick-access": QuickAccessGrid,
   clients: KeyClientsCard,
   "activity-feed": ActivityFeedCard,
 }
@@ -691,7 +651,7 @@ const widgetsMap: Record<string, React.FC<any>> = {
 const initialLayout: Layout = {
   col1: ["new-note", "tasks"],
   col2: ["clients", "contracts-in-progress"],
-  col3: ["date-time", "meetings", "dialer", "quick-access", "activity-feed"],
+  col3: ["date-time", "meetings", "dialer", "activity-feed"],
 }
 
 export default function Dashboard() {
