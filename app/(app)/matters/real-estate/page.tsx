@@ -1,18 +1,24 @@
-"use client"
+'use client'
 
-import { PlusCircle, MoreHorizontal } from "lucide-react"
-import Link from "next/link"
+import { PlusCircle, MoreHorizontal } from 'lucide-react'
+import Link from 'next/link'
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu'
 import {
   Table,
   TableBody,
@@ -20,18 +26,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from '@/components/ui/table'
 
-import { RealEstateMatterDialog } from "@/components/real-estate-matter-dialog"
-import { useRealEstateMatters } from "@/hooks/use-real-estate-matters"
-import type { RealEstateMatter } from "@/lib/data"
+import { RealEstateMatterDialog } from '@/components/real-estate-matter-dialog'
+import { useRealEstateMatters } from '@/hooks/use-real-estate-matters'
+import type { RealEstateMatter } from '@/lib/data'
 
 export default function RealEstateMattersPage() {
   const { matters, loading, error, createMatter } = useRealEstateMatters()
 
   /** Persist a new matter coming back from the dialog */
   const handleSaveMatter = async (
-    data: Omit<RealEstateMatter, "id" | "clientName">,
+    data: Omit<RealEstateMatter, 'id' | 'clientName'>,
   ) => {
     await createMatter(data)
   }
