@@ -52,14 +52,44 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     
+    let clientId = null
+    
+    const { data: existingClient } = await supabase
+      .from('clients')
+      .select('id')
+      .eq('name', 'E.P. Breaux Utility Services, LLC')
+      .single()
+    
+    if (existingClient) {
+      clientId = existingClient.id
+    } else {
+      const { data: newClient, error: createError } = await supabase
+        .from('clients')
+        .insert([{
+          name: 'E.P. Breaux Utility Services, LLC',
+          email: 'contact@epbreaux.com',
+          status: 'active',
+          user_id: user.id
+        }])
+        .select('id')
+        .single()
+      
+      if (createError || !newClient) {
+        console.error('Client creation error:', createError)
+        return NextResponse.json({ error: 'Failed to create client' }, { status: 500 })
+      }
+      
+      clientId = newClient.id
+    }
+
     const matterData = {
       title: body.name,
       description: body.description,
-      status: body.status?.toLowerCase() || 'open',
+      status: body.status?.toLowerCase() === 'under contract' ? 'pending' : (body.status?.toLowerCase() || 'open'),
       matter_type: 'Real Estate',
       matter_subtype: body.matterType || 'Real Estate',
       property_address: body.propertyAddress,
-      client_id: body.clientId,
+      client_id: clientId,
       user_id: user.id
     }
     
@@ -70,6 +100,8 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
+      console.error('Database error when creating matter:', error)
+      console.error('Matter data being inserted:', matterData)
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
