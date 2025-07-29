@@ -53,7 +53,6 @@ import { CompactMatterList } from "@/components/compact-matter-list"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
 import { useClients } from "@/hooks/use-clients"
 import { useTasks } from "@/hooks/use-tasks"
-import { useTimeEntries } from "@/hooks/use-time-entries"
 import { PhoneDialerCard } from "@/components/phone-dialer-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -81,7 +80,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
-import { DatePicker } from "@/components/ui/date-picker"
 import { cn } from "@/lib/utils"
 
 // Wrapper to make widgets sortable
@@ -168,88 +166,6 @@ function DashboardClientSearch({
   )
 }
 
-const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
-  const [selectedClient, setSelectedClient] = React.useState<any>(null)
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
-  const [hours, setHours] = React.useState<string>('')
-  const [description, setDescription] = React.useState<string>('')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const { clients, loading: clientsLoading } = useClients()
-  const { createTimeEntry } = useTimeEntries()
-
-  const handleSubmit = async () => {
-    if (!selectedClient || !hours || !description || !date) {
-      console.error('Please fill in all required fields')
-      return
-    }
-
-    setIsSubmitting(true)
-    try {
-      const result = await createTimeEntry({
-        client_id: selectedClient.id,
-        date: date.toISOString().split('T')[0],
-        hours: parseFloat(hours),
-        description,
-        rate: 250
-      })
-      
-      if (result.success) {
-        setHours('')
-        setDescription('')
-        setSelectedClient(null)
-        console.log('Time entry created successfully')
-      } else {
-        console.error('Failed to create time entry:', result.error)
-      }
-    } catch (error) {
-      console.error('Failed to create time entry:', error)
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  return (
-    <Card>
-      <CardHeader className="p-3 flex flex-row items-center">
-        {!isOverlay && (
-          <button {...dndListeners} className="cursor-grab p-1 -ml-1 mr-1">
-            <GripVertical className="h-5 w-5 text-muted-foreground/60" />
-          </button>
-        )}
-        <Clock className="h-4 w-4 mr-2 text-blue-500" />
-        <CardTitle className="text-sm font-semibold text-foreground">Enter Time</CardTitle>
-      </CardHeader>
-      <CardContent className="p-3 pt-0 grid gap-2">
-        <DashboardClientSearch clients={clients} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
-        <div className="grid grid-cols-2 gap-2">
-          <Input 
-            placeholder="Hours" 
-            type="number" 
-            step="0.1" 
-            className="bg-background"
-            value={hours}
-            onChange={(e) => setHours(e.target.value)}
-          />
-          <DatePicker date={date} setDate={setDate} />
-        </div>
-        <Textarea 
-          placeholder="Description..." 
-          rows={2} 
-          className="bg-background"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-        <Button 
-          className="bg-blue-600 text-white hover:bg-blue-600/90 w-full"
-          onClick={handleSubmit}
-          disabled={isSubmitting || !selectedClient || !hours || !description}
-        >
-          {isSubmitting ? 'Submitting...' : 'Submit Entry'}
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
 
 const DateTimeCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
   const [currentTime, setCurrentTime] = React.useState(new Date())
@@ -761,7 +677,6 @@ const PhoneDialerWidget = ({ dndListeners, isOverlay = false }: { dndListeners?:
 )
 
 const widgetsMap: Record<string, React.FC<any>> = {
-  "time-entry": TimeEntryCard,
   "date-time": DateTimeCard,
   meetings: MeetingsCard,
   "contracts-in-progress": ContractsInProgressWidget,
@@ -774,7 +689,7 @@ const widgetsMap: Record<string, React.FC<any>> = {
 }
 
 const initialLayout: Layout = {
-  col1: ["time-entry", "new-note", "tasks"],
+  col1: ["new-note", "tasks"],
   col2: ["clients", "contracts-in-progress"],
   col3: ["date-time", "meetings", "dialer", "quick-access", "activity-feed"],
 }
