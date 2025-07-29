@@ -35,9 +35,8 @@ import type { RealEstateMatter } from '@/lib/data'
 export default function RealEstateMattersPage() {
   const { matters, loading, error, createMatter } = useRealEstateMatters()
 
-  /** Persist a new matter coming back from the dialog */
   const handleSaveMatter = async (
-    data: Omit<RealEstateMatter, 'id' | 'clientName'>,
+    data: Omit<RealEstateMatter, 'id' | 'clientName'>
   ) => {
     await createMatter(data)
   }
