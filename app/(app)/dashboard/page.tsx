@@ -171,7 +171,42 @@ function DashboardClientSearch({
 const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
   const [selectedClient, setSelectedClient] = React.useState<any>(null)
   const [date, setDate] = React.useState<Date | undefined>(new Date())
+  const [hours, setHours] = React.useState<string>('')
+  const [description, setDescription] = React.useState<string>('')
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
   const { clients, loading: clientsLoading } = useClients()
+  const { createTimeEntry } = useTimeEntries()
+
+  const handleSubmit = async () => {
+    if (!selectedClient || !hours || !description || !date) {
+      console.error('Please fill in all required fields')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const result = await createTimeEntry({
+        client_id: selectedClient.id,
+        date: date.toISOString().split('T')[0],
+        hours: parseFloat(hours),
+        description,
+        rate: 250
+      })
+      
+      if (result.success) {
+        setHours('')
+        setDescription('')
+        setSelectedClient(null)
+        console.log('Time entry created successfully')
+      } else {
+        console.error('Failed to create time entry:', result.error)
+      }
+    } catch (error) {
+      console.error('Failed to create time entry:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <Card>
@@ -187,11 +222,30 @@ const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any
       <CardContent className="p-3 pt-0 grid gap-2">
         <DashboardClientSearch clients={clients} selectedClient={selectedClient} onSelectClient={setSelectedClient} />
         <div className="grid grid-cols-2 gap-2">
-          <Input placeholder="Hours" type="number" step="0.1" className="bg-background" />
+          <Input 
+            placeholder="Hours" 
+            type="number" 
+            step="0.1" 
+            className="bg-background"
+            value={hours}
+            onChange={(e) => setHours(e.target.value)}
+          />
           <DatePicker date={date} setDate={setDate} />
         </div>
-        <Textarea placeholder="Description..." rows={2} className="bg-background" />
-        <Button className="bg-blue-600 text-white hover:bg-blue-600/90 w-full">Submit Entry</Button>
+        <Textarea 
+          placeholder="Description..." 
+          rows={2} 
+          className="bg-background"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
+        <Button 
+          className="bg-blue-600 text-white hover:bg-blue-600/90 w-full"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !selectedClient || !hours || !description}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Entry'}
+        </Button>
       </CardContent>
     </Card>
   )
