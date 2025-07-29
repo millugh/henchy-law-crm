@@ -1,10 +1,11 @@
 "use client"
 
 import { useState } from "react"
-import { PlusCircle, MoreHorizontal } from "lucide-react"
+import { PlusCircle, MoreHorizontal, Search, FileText } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,13 @@ import { TitlePolicyMatterDialog } from "@/components/title-policy-matter-dialog
 export default function TitlePolicyMattersPage() {
   const { matters, loading, error, createMatter } = useMatters('title_policy')
   const { clients } = useClients()
+  const [searchTerm, setSearchTerm] = useState("")
+
+  const filteredMatters = matters.filter(matter => 
+    matter.policy_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    matter.property_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    matter.insured_parties?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   const handleSaveMatter = async (data: {
     policyNumber: string
@@ -71,6 +79,18 @@ export default function TitlePolicyMattersPage() {
         </TitlePolicyMatterDialog>
       </CardHeader>
       <CardContent>
+        <div className="flex items-center justify-between mb-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search policies, addresses, or insured parties..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-muted-foreground">Loading matters...</div>
@@ -78,6 +98,20 @@ export default function TitlePolicyMattersPage() {
         ) : error ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-destructive">Error loading matters: {error}</div>
+          </div>
+        ) : filteredMatters.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No title policies found</h3>
+            <p className="text-muted-foreground mb-4 max-w-sm">
+              {searchTerm ? "No policies match your search criteria. Try adjusting your search terms." : "Get started by creating your first title policy matter."}
+            </p>
+            <TitlePolicyMatterDialog onSave={handleSaveMatter}>
+              <Button>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Your First Policy
+              </Button>
+            </TitlePolicyMatterDialog>
           </div>
         ) : (
           <Table>
@@ -94,7 +128,7 @@ export default function TitlePolicyMattersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {matters.map((matter) => (
+              {filteredMatters.map((matter) => (
                 <TableRow key={matter.id}>
                   <TableCell className="font-medium">
                     <Link href={`/matters/title-policy/${matter.id}`} className="hover:underline">

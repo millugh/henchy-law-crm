@@ -506,19 +506,24 @@ export const SIDEBAR_NAV_ITEMS = [
     icon: Landmark,
   },
   {
-    title: "Matters",
-    href: "/matters",
-    icon: Briefcase,
-    subItems: [
-      { title: "Real Estate", href: "/matters/real-estate", icon: Building2 },
-      { title: "WFG Title Policies", href: "/matters/title-policy", icon: FileText },
-      { title: "Wills & Successions", href: "/matters/wills-successions", icon: ScrollText },
-    ],
-  },
-  {
     title: "Clients",
     href: "/clients",
     icon: BookUser,
+  },
+  {
+    title: "Real Estate",
+    href: "/matters/real-estate",
+    icon: Building2,
+  },
+  {
+    title: "Title Policies",
+    href: "/matters/title-policy",
+    icon: FileText,
+  },
+  {
+    title: "Wills & Successions",
+    href: "/matters/wills-successions",
+    icon: ScrollText,
   },
   {
     title: "Documents",
