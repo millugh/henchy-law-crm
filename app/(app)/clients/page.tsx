@@ -1,5 +1,6 @@
 "use client"
 
+import { use } from "react"
 import { MoreHorizontal } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -33,8 +34,8 @@ function ClientAvatar({ client }: { client: Client }) {
   )
 }
 
-export default function ClientsPage({ searchParams }: { searchParams?: { query?: string } }) {
-  const query = searchParams?.query || ""
+export default function ClientsPage({ searchParams }: { searchParams?: Promise<{ query?: string }> }) {
+  const query = searchParams ? use(searchParams).query || "" : ""
   const { clients, loading, error } = useClients()
 
   const filteredClients = clients.filter((client) => {
