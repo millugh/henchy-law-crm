@@ -11,10 +11,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFoo
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range"
 import { TIME_ENTRIES, type TimeEntry } from "@/lib/data"
 import { exportToExcel, exportToPDF } from "@/lib/export"
+import { TimeEntryDialog } from "@/components/time-entry-dialog"
 
 export default function TimeTrackingPage() {
   const [entries, setEntries] = React.useState<TimeEntry[]>(TIME_ENTRIES)
   const [filter, setFilter] = React.useState("")
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+
+  const handleTimeEntrySave = (data: any) => {
+    setDialogOpen(false)
+  }
 
   const filteredEntries = entries.filter(
     (entry) =>
@@ -80,7 +86,7 @@ export default function TimeTrackingPage() {
                   <DropdownMenuItem onClick={handleExportExcel}>Export as Excel</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Button>
+              <Button onClick={() => setDialogOpen(true)}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add Entry
               </Button>
@@ -131,6 +137,12 @@ export default function TimeTrackingPage() {
           </div>
         </CardContent>
       </Card>
+      
+      <TimeEntryDialog
+        isOpen={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSave={handleTimeEntrySave}
+      />
     </div>
   )
 }

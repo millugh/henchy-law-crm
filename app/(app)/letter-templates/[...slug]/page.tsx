@@ -4,7 +4,7 @@ import { notFound, useParams, useRouter } from "next/navigation"
 
 import { letterTemplates, type LetterTemplate } from "@/lib/data"
 import { LetterTemplateEditor } from "@/components/letter-template-editor"
-import { useToast } from "@/components/ui/use-toast"
+import { useToast } from "@/hooks/use-toast"
 
 export default function LetterTemplateEditPage() {
   const router = useRouter()

@@ -1,7 +1,7 @@
 "use client"
 
 import { DialogFooter } from "@/components/ui/dialog"
-import { useToast } from "@/components/ui/use-toast" // Import useToast
+import { useToast } from "@/hooks/use-toast" // Import useToast
 
 import * as React from "react"
 import {
@@ -251,8 +251,37 @@ const TimeEntryCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any
   )
 }
 
-const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
-  const [date, setDate] = React.useState<Date | undefined>(new Date())
+const DateTimeCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any; isOverlay?: boolean }) => {
+  const [currentTime, setCurrentTime] = React.useState(new Date())
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  const formatDateCST = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      timeZone: 'America/Chicago',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  const formatTimeCST = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      timeZone: 'America/Chicago',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    })
+  }
+
   return (
     <Card>
       <CardHeader className="p-3 flex flex-row items-center">
@@ -261,28 +290,21 @@ const CalendarCard = ({ dndListeners, isOverlay = false }: { dndListeners?: any;
             <GripVertical className="h-5 w-5 text-muted-foreground/60" />
           </button>
         )}
-        <CardTitle className="text-sm font-semibold text-foreground">Calendar</CardTitle>
+        <Clock className="h-4 w-4 mr-2 text-primary" />
+        <CardTitle className="text-sm font-semibold text-foreground">Date & Time (CST)</CardTitle>
       </CardHeader>
-      <CardContent className="p-1 overflow-hidden">
-        <Calendar
-          mode="single"
-          selected={date}
-          onSelect={setDate}
-          className="w-full"
-          classNames={{
-            months: "w-full",
-            month: "w-full space-y-1",
-            table: "w-full border-collapse",
-            head_row: "flex w-full",
-            row: "flex w-full mt-1",
-            head_cell: "flex-1 text-muted-foreground rounded-md font-normal text-[0.8rem] text-center h-8",
-            cell: "flex-1 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-            day: cn(buttonVariants({ variant: "ghost" }), "w-full h-8 p-0 font-normal aria-selected:opacity-100"),
-            day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
-            day_today: "bg-accent text-accent-foreground",
-            caption_label: "text-sm",
-          }}
-        />
+      <CardContent className="p-3 pt-0 text-center">
+        <div className="space-y-2">
+          <div className="text-lg font-semibold text-foreground">
+            {formatDateCST(currentTime)}
+          </div>
+          <div className="text-2xl font-bold text-primary">
+            {formatTimeCST(currentTime)}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Central Standard Time
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
@@ -740,7 +762,7 @@ const PhoneDialerWidget = ({ dndListeners, isOverlay = false }: { dndListeners?:
 
 const widgetsMap: Record<string, React.FC<any>> = {
   "time-entry": TimeEntryCard,
-  calendar: CalendarCard,
+  "date-time": DateTimeCard,
   meetings: MeetingsCard,
   "contracts-in-progress": ContractsInProgressWidget,
   dialer: PhoneDialerWidget,
@@ -754,7 +776,7 @@ const widgetsMap: Record<string, React.FC<any>> = {
 const initialLayout: Layout = {
   col1: ["time-entry", "new-note", "tasks"],
   col2: ["clients", "contracts-in-progress"],
-  col3: ["calendar", "meetings", "dialer", "quick-access", "activity-feed"],
+  col3: ["date-time", "meetings", "dialer", "quick-access", "activity-feed"],
 }
 
 export default function Dashboard() {
