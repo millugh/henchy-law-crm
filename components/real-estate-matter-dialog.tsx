@@ -20,9 +20,13 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Check, ChevronsUpDown, Plus } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { useClients } from "@/hooks/use-clients"
 import { TRANSACTION_TYPES, type RealEstateMatter } from "@/lib/data"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 
 const realEstateMatterSchema = z.object({
   name: z.string().min(1, "Matter name is required"),
@@ -57,8 +61,9 @@ interface RealEstateMatterDialogProps {
 }
 
 export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateMatterDialogProps) {
-  const { clients } = useClients()
+  const { clients, refetch } = useClients()
   const [isOpen, setIsOpen] = useState(false)
+  const [clientSearchOpen, setClientSearchOpen] = useState(false)
   
   const form = useForm<RealEstateMatterFormValues>({
     resolver: zodResolver(realEstateMatterSchema),
@@ -89,6 +94,16 @@ export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateM
 
   const watchedTransactionType = form.watch("transactionType")
   const showDueDiligence = watchedTransactionType === "Purchase and Sale Agreement" || watchedTransactionType === "Option to Purchase"
+
+  useEffect(() => {
+    const newClientId = sessionStorage.getItem('newClientId')
+    if (newClientId && isOpen) {
+      refetch().then(() => {
+        form.setValue('clientId', newClientId)
+        sessionStorage.removeItem('newClientId')
+      })
+    }
+  }, [isOpen, refetch, form])
 
   const handleSave = (data: RealEstateMatterFormValues) => {
     onSave(data as Omit<RealEstateMatter, "id" | "clientName">)
@@ -403,20 +418,61 @@ export function RealEstateMatterDialog({ matter, onSave, children }: RealEstateM
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a client" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clients.filter(c => c.practiceAreas?.includes('Real Estate')).map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Popover open={clientSearchOpen} onOpenChange={setClientSearchOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={clientSearchOpen}
+                            className="w-full justify-between"
+                          >
+                            {field.value ? clients.find(client => client.id === field.value)?.name : "Select client..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search client..." />
+                          <CommandList>
+                            <CommandEmpty>
+                              <div className="flex flex-col items-center gap-2 py-4">
+                                <p className="text-sm text-muted-foreground">No client found.</p>
+                                <Button
+                                  size="sm"
+                                  onClick={() => {
+                                    setClientSearchOpen(false)
+                                    window.location.href = `/clients/new?returnTo=real-estate-matter&context=real-estate`
+                                  }}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Plus className="h-4 w-4" />
+                                  Add Client
+                                </Button>
+                              </div>
+                            </CommandEmpty>
+                            <CommandGroup>
+                              {clients.filter(c => c.practiceAreas?.includes('Real Estate')).map((client) => (
+                                <CommandItem
+                                  key={client.id}
+                                  value={client.name}
+                                  onSelect={() => {
+                                    field.onChange(client.id)
+                                    setClientSearchOpen(false)
+                                  }}
+                                >
+                                  <Check
+                                    className={cn("mr-2 h-4 w-4", field.value === client.id ? "opacity-100" : "opacity-0")}
+                                  />
+                                  {client.name}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -99,6 +99,9 @@ export default function NewClientPage() {
         if (returnTo === 'time-entry' && context === 'time-tracking') {
           sessionStorage.setItem('newClientId', result.data?.id || '')
           router.push('/time-tracking?openDialog=true')
+        } else if (returnTo === 'real-estate-matter' && context === 'real-estate') {
+          sessionStorage.setItem('newClientId', result.data?.id || '')
+          router.push('/matters/real-estate')
         } else {
           router.push("/clients")
         }
@@ -208,6 +211,8 @@ export default function NewClientPage() {
                 onClick={() => {
                   if (returnTo === 'time-entry' && context === 'time-tracking') {
                     router.push('/time-tracking')
+                  } else if (returnTo === 'real-estate-matter' && context === 'real-estate') {
+                    router.push('/matters/real-estate')
                   } else {
                     router.push("/clients")
                   }
