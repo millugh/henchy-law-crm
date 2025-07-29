@@ -9,6 +9,15 @@ import { AddActivityForm } from "@/components/add-activity-form"
 import { useState } from "react"
 import { FileText, User, MapPin, ShieldCheck, DollarSign, Upload } from "lucide-react"
 import { DocumentUploadDialog } from "@/components/document-upload-dialog"
+
+interface DocumentRecord {
+  id: string
+  name: string
+  file_type: string
+  file_size: number
+  file_url: string
+  created_at: string
+}
 import { Button } from "@/components/ui/button"
 
 type Document = {
@@ -47,21 +56,35 @@ export default function TitlePolicyMatterDetailPage() {
     setActivity([event, ...activity])
   }
 
-  const handleUploadDocuments = (files: File[]) => {
-    const newDocuments: Document[] = files.map((file) => {
-      const extension = file.name.split(".").pop()?.toLowerCase()
-      let type: Document["type"] = "docx"
-      if (extension === "pdf") type = "pdf"
-      if (extension === "png") type = "png"
-
-      return {
-        name: file.name,
-        type: type,
-        size: `${(file.size / 1024).toFixed(2)} KB`,
-      }
-    })
+  const handleDocumentUpload = (uploadedDocuments: DocumentRecord[]) => {
+    const newDocuments: Document[] = uploadedDocuments.map((doc) => ({
+      name: doc.name,
+      type: doc.file_type as Document["type"],
+      size: doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : "0 KB",
+    }))
     setDocuments([...documents, ...newDocuments])
   }
+
+  React.useEffect(() => {
+    const fetchMatterDocuments = async () => {
+      try {
+        const response = await fetch(`/api/documents?matterId=${matterId}`)
+        if (response.ok) {
+          const data = await response.json()
+          const matterDocs: Document[] = data.documents.map((doc: DocumentRecord) => ({
+            name: doc.name,
+            type: doc.file_type as Document["type"],
+            size: doc.file_size ? `${(doc.file_size / 1024).toFixed(2)} KB` : "0 KB",
+          }))
+          setDocuments(matterDocs)
+        }
+      } catch (error) {
+        console.error('Failed to fetch matter documents:', error)
+      }
+    }
+
+    fetchMatterDocuments()
+  }, [matterId])
 
   const getFileIcon = (type: Document["type"]) => {
     switch (type) {
@@ -118,7 +141,11 @@ export default function TitlePolicyMatterDetailPage() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-semibold text-lg">Key Documents</h3>
-              <DocumentUploadDialog onUpload={handleUploadDocuments}>
+              <DocumentUploadDialog 
+                onUpload={handleDocumentUpload}
+                matterId={matterId}
+                clientId={matter.clientId}
+              >
                 <Button variant="outline" size="sm">
                   <Upload className="mr-2 h-4 w-4" />
                   Upload
