@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
     
@@ -10,7 +10,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: matters, error } = await supabase
+    const { searchParams } = new URL(request.url)
+    const matterType = searchParams.get('type')
+
+    let query = supabase
       .from('matters')
       .select(`
         *,
@@ -21,6 +24,12 @@ export async function GET() {
         )
       `)
       .order('created_at', { ascending: false })
+
+    if (matterType) {
+      query = query.eq('matter_type', matterType)
+    }
+
+    const { data: matters, error } = await query
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
@@ -43,9 +52,20 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     
+    const matterData = {
+      title: body.name,
+      description: body.description,
+      status: body.status?.toLowerCase() || 'open',
+      matter_type: 'Real Estate',
+      matter_subtype: body.matterType || 'Real Estate',
+      property_address: body.propertyAddress,
+      client_id: body.clientId,
+      user_id: user.id
+    }
+    
     const { data: matter, error } = await supabase
       .from('matters')
-      .insert([{ ...body, user_id: user.id }])
+      .insert([matterData])
       .select()
       .single()
 
