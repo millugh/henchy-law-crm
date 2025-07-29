@@ -43,7 +43,7 @@ export default function ClientsPage({ searchParams }: { searchParams?: Promise<{
     return (
       client.name.toLowerCase().includes(searchTerm) ||
       client.email.toLowerCase().includes(searchTerm) ||
-      client.practiceAreas.some((area) => area.toLowerCase().includes(searchTerm))
+      (client.practiceAreas || []).some((area) => area.toLowerCase().includes(searchTerm))
     )
   })
 
@@ -101,7 +101,7 @@ export default function ClientsPage({ searchParams }: { searchParams?: Promise<{
                         <TableCell>{new Date(client.lastInteraction).toLocaleDateString()}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {client.practiceAreas.map((area) => (
+                            {(client.practiceAreas || []).map((area) => (
                               <Badge key={area} variant="outline" className="font-normal">
                                 {area}
                               </Badge>
