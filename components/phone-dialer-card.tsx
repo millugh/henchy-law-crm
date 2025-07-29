@@ -1,5 +1,6 @@
 import { GripVertical, Phone, PhoneIncoming, PhoneMissed, PhoneOutgoing } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ export function PhoneDialerCard({ dndListeners, isOverlay = false }: { dndListen
             <GripVertical className="h-5 w-5 text-muted-foreground/60" />
           </button>
         )}
+        <Image src="/3cx-logo.png" alt="3CX" width={24} height={24} className="mr-2" />
         <CardTitle className="text-sm font-medium flex-1">Recent Calls</CardTitle>
         <Link href="/calls" className="text-sm text-muted-foreground hover:text-primary">
           View All
