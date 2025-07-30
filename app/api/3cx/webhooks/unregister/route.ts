@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabaseClient } from '@/lib/supabase'
+import { ThreeCxService } from '@/lib/3cx-service'
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient()
     
@@ -13,21 +11,21 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const body = await request.json()
-    
-    const { data: task, error } = await supabase
-      .from('tasks')
-      .update(body)
-      .eq('id', params.id)
+    const { data: config, error } = await supabase
+      .from('threecx_config')
+      .select('*')
       .eq('user_id', user.id)
-      .select()
+      .eq('is_active', true)
       .single()
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error || !config) {
+      return NextResponse.json({ error: 'No active 3CX configuration found' }, { status: 404 })
     }
 
-    return NextResponse.json({ task })
+    const threeCxService = new ThreeCxService(config)
+    const result = await threeCxService.unregisterWebhooks()
+
+    return NextResponse.json(result)
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

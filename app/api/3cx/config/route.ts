@@ -36,10 +36,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    const { register_webhooks, crm_base_url, ...configData } = body
     
     const { data: config, error } = await supabase
       .from('threecx_config')
-      .upsert([{ ...body, user_id: user.id }])
+      .upsert([{ ...configData, user_id: user.id }])
       .select()
       .single()
 
@@ -47,7 +48,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json({ config })
+    let webhookResult = null
+    if (register_webhooks && crm_base_url) {
+      const { ThreeCxService } = await import('@/lib/3cx-service')
+      const threeCxService = new ThreeCxService(config)
+      
+      webhookResult = await threeCxService.registerWebhooks(crm_base_url)
+    }
+
+    return NextResponse.json({ 
+      config,
+      webhookRegistration: webhookResult
+    })
   } catch (error) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }

@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase-server'
+import { createServerSupabaseClient } from '@/lib/supabase'
 
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient()
@@ -9,33 +9,54 @@ export async function GET(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 })
   }
 
+  const encoder = new TextEncoder()
+  
   const stream = new ReadableStream({
     start(controller) {
-      const encoder = new TextEncoder()
-      
-      const sendEvent = (data: any) => {
-        const message = `data: ${JSON.stringify(data)}\n\n`
-        controller.enqueue(encoder.encode(message))
+      const data = `data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`
+      controller.enqueue(encoder.encode(data))
+
+      const heartbeat = setInterval(() => {
+        try {
+          const heartbeatData = `data: ${JSON.stringify({ type: 'heartbeat', timestamp: new Date().toISOString() })}\n\n`
+          controller.enqueue(encoder.encode(heartbeatData))
+        } catch (error) {
+          console.error('SSE heartbeat error:', error)
+          clearInterval(heartbeat)
+          controller.close()
+        }
+      }, 25000) // 25 seconds (less than typical 30s timeout)
+
+      const cleanup = () => {
+        clearInterval(heartbeat)
+        try {
+          controller.close()
+        } catch (error) {
+        }
       }
 
-      sendEvent({ type: 'connected', message: 'Connected to 3CX events' })
+      request.signal.addEventListener('abort', cleanup)
 
-      const interval = setInterval(() => {
-        sendEvent({ type: 'heartbeat', timestamp: new Date().toISOString() })
-      }, 30000)
-
-      request.signal.addEventListener('abort', () => {
-        clearInterval(interval)
-        controller.close()
-      })
+      controller.error = (error: any) => {
+        console.error('SSE controller error:', error)
+        cleanup()
+      }
+    },
+    
+    cancel() {
+      console.log('SSE connection cancelled by client')
     }
   })
 
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET',
+      'Access-Control-Allow-Headers': 'Cache-Control',
+      'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   })
 }

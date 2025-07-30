@@ -166,6 +166,111 @@ export class ThreeCxService {
     }
   }
 
+  async registerWebhooks(crmBaseUrl: string): Promise<{ success: boolean; message: string; registeredWebhooks?: string[] }> {
+    if (!this.config) {
+      return { success: false, message: 'ThreeCX not configured' }
+    }
+
+    const webhookEndpoints = [
+      {
+        event: 'CallStarted',
+        url: `${crmBaseUrl}/api/3cx/incoming`,
+        description: 'Incoming call notifications'
+      },
+      {
+        event: 'CallEnded', 
+        url: `${crmBaseUrl}/api/3cx/call-ended`,
+        description: 'Call completion events'
+      },
+      {
+        event: 'VoicemailReceived',
+        url: `${crmBaseUrl}/api/3cx/voicemail`, 
+        description: 'Voicemail notifications'
+      }
+    ]
+
+    const registeredWebhooks: string[] = []
+    const errors: string[] = []
+
+    for (const webhook of webhookEndpoints) {
+      try {
+        const response = await fetch(`${this.config.api_url}/api/Rest/Configuration/AddWebhookSubscription`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${Buffer.from(`${this.config.api_username}:${this.config.api_password}`).toString('base64')}`,
+          },
+          body: JSON.stringify({
+            EventType: webhook.event,
+            Url: webhook.url,
+            Secret: this.config.webhook_secret,
+            Description: webhook.description,
+            Enabled: true
+          }),
+        })
+
+        if (response.ok) {
+          registeredWebhooks.push(`${webhook.event} -> ${webhook.url}`)
+        } else {
+          const errorText = await response.text()
+          errors.push(`${webhook.event}: ${response.status} - ${errorText}`)
+        }
+      } catch (error) {
+        errors.push(`${webhook.event}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      }
+    }
+
+    if (registeredWebhooks.length === webhookEndpoints.length) {
+      return {
+        success: true,
+        message: `Successfully registered ${registeredWebhooks.length} webhooks`,
+        registeredWebhooks
+      }
+    } else if (registeredWebhooks.length > 0) {
+      return {
+        success: false,
+        message: `Partial success: ${registeredWebhooks.length}/${webhookEndpoints.length} webhooks registered. Errors: ${errors.join(', ')}`,
+        registeredWebhooks
+      }
+    } else {
+      return {
+        success: false,
+        message: `Failed to register webhooks. Errors: ${errors.join(', ')}`
+      }
+    }
+  }
+
+  async unregisterWebhooks(): Promise<{ success: boolean; message: string }> {
+    if (!this.config) {
+      return { success: false, message: 'ThreeCX not configured' }
+    }
+
+    try {
+      const response = await fetch(`${this.config.api_url}/api/Rest/Configuration/RemoveWebhookSubscriptions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${Buffer.from(`${this.config.api_username}:${this.config.api_password}`).toString('base64')}`,
+        },
+        body: JSON.stringify({
+          EventTypes: ['CallStarted', 'CallEnded', 'VoicemailReceived']
+        }),
+      })
+
+      if (response.ok) {
+        return { success: true, message: 'Successfully unregistered all webhooks' }
+      } else {
+        const errorText = await response.text()
+        return { success: false, message: `Failed to unregister webhooks: ${response.status} - ${errorText}` }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to unregister webhooks'
+      }
+    }
+  }
+
   processWebhookEvent(event: ThreeCxWebhookEvent): Partial<PhoneCall> | Partial<Voicemail> | null {
     switch (event.eventType) {
       case 'incoming':
