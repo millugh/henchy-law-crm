@@ -12,12 +12,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table"
 import { DatePickerWithRange } from "@/components/ui/date-picker-with-range"
-import { TIME_ENTRIES, type TimeEntry } from "@/lib/data"
-import { exportToExcel, exportToPDF } from "@/lib/export"
+import { exportToExcel, exportToPDF, exportToCSV } from "@/lib/export"
 import { TimeEntryDialog } from "@/components/time-entry-dialog"
+import { useTimeEntries } from "@/hooks/use-time-entries"
 
 export default function TimeTrackingPage() {
-  const [entries, setEntries] = React.useState<TimeEntry[]>(TIME_ENTRIES)
+  const { timeEntries, loading, error, refetch, createTimeEntry } = useTimeEntries()
   const [filter, setFilter] = React.useState("")
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
     from: startOfMonth(new Date()),
@@ -33,12 +33,29 @@ export default function TimeTrackingPage() {
     }
   }, [searchParams])
 
-  const handleTimeEntrySave = (data: any) => {
-    setDialogOpen(false)
+  const handleTimeEntrySave = async (data: any) => {
+    try {
+      const result = await createTimeEntry({
+        date: data.date,
+        hours: data.hours,
+        description: data.description,
+        rate: data.rate,
+        client_id: data.client_id,
+        matter_id: data.matter_id
+      })
+      
+      if (result.success) {
+        setDialogOpen(false)
+        refetch()
+      }
+    } catch (error) {
+      console.error('Failed to save time entry:', error)
+    }
   }
 
-  const filteredEntries = entries.filter((entry) => {
-    const matchesText = entry.clientName.toLowerCase().includes(filter.toLowerCase()) ||
+  const filteredEntries = timeEntries.filter((entry) => {
+    const clientName = entry.clients?.name || ''
+    const matchesText = clientName.toLowerCase().includes(filter.toLowerCase()) ||
       entry.description.toLowerCase().includes(filter.toLowerCase())
     
     const entryDate = parseISO(entry.date)
@@ -49,17 +66,17 @@ export default function TimeTrackingPage() {
   })
 
   const totalHours = filteredEntries.reduce((acc, entry) => acc + entry.hours, 0)
-  const totalBilled = filteredEntries.filter((e) => e.billed).reduce((acc, entry) => acc + entry.hours, 0)
+  const totalBilled = filteredEntries.filter((e) => e.rate && e.rate > 0).reduce((acc, entry) => acc + entry.hours, 0)
   const totalUnbilled = totalHours - totalBilled
 
   const handleExportPDF = () => {
-    const headers = ["Date", "Client", "Hours", "Description", "Billed"]
+    const headers = ["Date", "Client", "Hours", "Description", "Rate"]
     const data = filteredEntries.map((e) => ({
       date: e.date,
-      client: e.clientName,
+      client: e.clients?.name || 'Unknown',
       hours: e.hours.toFixed(2),
       description: e.description,
-      billed: e.billed ? "Yes" : "No",
+      rate: e.rate ? `$${e.rate.toFixed(2)}` : 'N/A',
     }))
     exportToPDF(data, headers, "Time Entries", "time_entries")
   }
@@ -67,12 +84,23 @@ export default function TimeTrackingPage() {
   const handleExportExcel = () => {
     const data = filteredEntries.map((e) => ({
       Date: e.date,
-      Client: e.clientName,
+      Client: e.clients?.name || 'Unknown',
       Hours: e.hours,
       Description: e.description,
-      Billed: e.billed ? "Yes" : "No",
+      Rate: e.rate || 0,
     }))
     exportToExcel(data, "time_entries", "Time Entries")
+  }
+
+  const handleExportCSV = () => {
+    const data = filteredEntries.map((e) => ({
+      Date: e.date,
+      Client: e.clients?.name || 'Unknown',
+      Hours: e.hours,
+      Description: e.description,
+      Rate: e.rate || 0,
+    }))
+    exportToCSV(data, "time_entries")
   }
 
   return (
@@ -136,6 +164,7 @@ export default function TimeTrackingPage() {
                 <DropdownMenuContent>
                   <DropdownMenuItem onClick={handleExportPDF}>Export as PDF</DropdownMenuItem>
                   <DropdownMenuItem onClick={handleExportExcel}>Export as Excel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportCSV}>Export as CSV</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button onClick={() => setDialogOpen(true)}>
@@ -152,17 +181,25 @@ export default function TimeTrackingPage() {
                   <TableHead>Client</TableHead>
                   <TableHead className="w-[200px]">Description</TableHead>
                   <TableHead className="text-right w-[80px]">Hours</TableHead>
-                  <TableHead className="text-center w-[100px]">Billed</TableHead>
+                  <TableHead className="text-center w-[100px]">Rate</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEntries.map((entry) => (
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center">Loading...</TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-red-500">Error: {error}</TableCell>
+                  </TableRow>
+                ) : filteredEntries.map((entry) => (
                   <TableRow key={entry.id}>
                     <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                    <TableCell className="font-medium">{entry.clientName}</TableCell>
+                    <TableCell className="font-medium">{entry.clients?.name || 'Unknown'}</TableCell>
                     <TableCell className="text-muted-foreground">{entry.description}</TableCell>
                     <TableCell className="text-right">{entry.hours.toFixed(2)}</TableCell>
-                    <TableCell className="text-center">{entry.billed ? "Yes" : "No"}</TableCell>
+                    <TableCell className="text-center">{entry.rate ? `$${entry.rate}` : 'N/A'}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -175,13 +212,13 @@ export default function TimeTrackingPage() {
                   <TableCell />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={3}>Unbilled Hours</TableCell>
-                  <TableCell className="text-right">{totalUnbilled.toFixed(2)}</TableCell>
+                  <TableCell colSpan={3}>Hours with Rate</TableCell>
+                  <TableCell className="text-right">{totalBilled.toFixed(2)}</TableCell>
                   <TableCell />
                 </TableRow>
                 <TableRow>
-                  <TableCell colSpan={3}>Billed Hours</TableCell>
-                  <TableCell className="text-right">{totalBilled.toFixed(2)}</TableCell>
+                  <TableCell colSpan={3}>Hours without Rate</TableCell>
+                  <TableCell className="text-right">{totalUnbilled.toFixed(2)}</TableCell>
                   <TableCell />
                 </TableRow>
               </TableFooter>
