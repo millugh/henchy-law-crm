@@ -128,6 +128,61 @@ export interface ActivityEvent {
   updated_at: string
 }
 
+export interface PhoneCall {
+  id: string
+  user_id: string
+  client_id?: string
+  direction: 'inbound' | 'outbound'
+  caller_number: string
+  callee_number: string
+  start_time: string
+  end_time?: string
+  duration?: number
+  status: 'ringing' | 'connected' | 'completed' | 'missed' | 'failed'
+  recording_url?: string
+  call_id_3cx?: string
+  notes?: string
+  created_at: string
+  updated_at: string
+  clients?: {
+    id: string
+    name: string
+  }
+}
+
+export interface Voicemail {
+  id: string
+  user_id: string
+  call_id?: string
+  caller_number: string
+  voicemail_url: string
+  transcription?: string
+  duration?: number
+  timestamp: string
+  is_read: boolean
+  created_at: string
+  updated_at: string
+  phone_calls?: {
+    id: string
+    caller_number: string
+    client_id?: string
+  }
+}
+
+export interface ThreeCxConfig {
+  id: string
+  user_id: string
+  api_url: string
+  api_username: string
+  api_password: string
+  webhook_secret: string
+  default_extension?: string
+  recording_enabled: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 class ApiClient {
   private supabase = createClientComponentClient()
 
@@ -399,6 +454,136 @@ class ApiClient {
       return { data: data.activity }
     } catch (error) {
       return { error: error instanceof Error ? error.message : 'Failed to create matter activity' }
+    }
+  }
+
+  async fetchPhoneCalls(): Promise<ApiResponse<PhoneCall[]>> {
+    try {
+      const response = await fetch('/api/phone-calls')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.phoneCalls || [] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch phone calls' }
+    }
+  }
+
+  async createPhoneCall(callData: Omit<PhoneCall, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<ApiResponse<PhoneCall>> {
+    try {
+      const response = await fetch('/api/phone-calls', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(callData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.phoneCall }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create phone call' }
+    }
+  }
+
+  async updatePhoneCall(id: string, callData: Partial<PhoneCall>): Promise<ApiResponse<PhoneCall>> {
+    try {
+      const response = await fetch(`/api/phone-calls/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(callData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.phoneCall }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update phone call' }
+    }
+  }
+
+  async fetchVoicemails(): Promise<ApiResponse<Voicemail[]>> {
+    try {
+      const response = await fetch('/api/voicemails')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.voicemails || [] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch voicemails' }
+    }
+  }
+
+  async createVoicemail(voicemailData: Omit<Voicemail, 'id' | 'created_at' | 'updated_at' | 'user_id'>): Promise<ApiResponse<Voicemail>> {
+    try {
+      const response = await fetch('/api/voicemails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(voicemailData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.voicemail }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to create voicemail' }
+    }
+  }
+
+  async fetchThreeCxConfig(): Promise<ApiResponse<ThreeCxConfig>> {
+    try {
+      const response = await fetch('/api/3cx/config')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.config }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to fetch 3CX config' }
+    }
+  }
+
+  async updateThreeCxConfig(configData: Partial<ThreeCxConfig>): Promise<ApiResponse<ThreeCxConfig>> {
+    try {
+      const response = await fetch('/api/3cx/config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configData),
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data: data.config }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to update 3CX config' }
+    }
+  }
+
+  async testThreeCxConnection(): Promise<ApiResponse<{ success: boolean; message: string }>> {
+    try {
+      const response = await fetch('/api/3cx/test-connection', {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const data = await response.json()
+      return { data }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Failed to test 3CX connection' }
     }
   }
 }
