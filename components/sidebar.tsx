@@ -5,6 +5,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 
 import { SIDEBAR_NAV_ITEMS } from "@/lib/data"
+import { MissedCallsBadge } from "./missed-calls-badge"
 import { cn } from "@/lib/utils"
 import { UserProfile } from "@/components/user-profile"
 
@@ -33,6 +34,7 @@ export function Sidebar() {
               >
                 <item.icon className="h-4 w-4" />
                 {item.title}
+                {item.title === "Calls" && <MissedCallsBadge />}
               </Link>
             ))}
           </nav>

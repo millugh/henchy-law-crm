@@ -6,7 +6,14 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "migrate": "node scripts/migrate.js",
+    "migrate:dev": "node scripts/migrate.js --env=development",
+    "migrate:prod": "node scripts/migrate.js --env=production",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@dnd-kit/core": "latest",
@@ -19,6 +26,7 @@
     "@fullcalendar/react": "latest",
     "@fullcalendar/timegrid": "latest",
     "@hookform/resolvers": "latest",
+    "@playwright/test": "^1.54.1",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -62,7 +70,9 @@
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
     "date-fns": "latest",
+    "dotenv": "^17.2.1",
     "embla-carousel-react": "8.5.1",
+    "eventsource": "^4.0.0",
     "input-otp": "1.4.1",
     "jspdf": "latest",
     "jspdf-autotable": "latest",
@@ -84,11 +94,14 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.4.4",
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
     "postcss": "^8.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5"

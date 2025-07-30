@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Home,
   LineChart,
+  Phone,
   Settings,
   Users,
   CheckSquare,
@@ -549,6 +550,11 @@ export const SIDEBAR_NAV_ITEMS = [
     title: "Calendar",
     href: "/calendar",
     icon: Gavel,
+  },
+  {
+    title: "Calls",
+    href: "/calls",
+    icon: Phone,
   },
 ]
 
